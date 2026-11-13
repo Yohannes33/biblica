@@ -45,6 +45,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'All' | VerseCategory>('All');
   const [isAddingNew, setIsAddingNew] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const [customRef, setCustomRef] = useState('');
   const [customText, setCustomText] = useState('');
@@ -219,7 +220,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
             const score = progressMap[verse.id]?.masteryScore ?? 0;
             const m = masteryOf(score);
             return (
-              <li key={verse.id} className="relative flex items-start gap-1">
+              <li key={verse.id} className={`relative flex items-start gap-1 ${isCurrent ? 'bg-brand-soft/60' : ''}`}>
                 <button
                   type="button"
                   onClick={() => {
@@ -227,8 +228,8 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                     onClose();
                   }}
                   aria-current={isCurrent ? 'true' : undefined}
-                  className={`flex min-w-0 flex-1 flex-col gap-1.5 p-4 text-left transition-colors hover:bg-surface-2 ${
-                    isCurrent ? 'bg-brand-soft/60' : ''
+                  className={`flex min-w-0 flex-1 flex-col gap-1.5 p-4 text-left transition-colors ${
+                    isCurrent ? '' : 'hover:bg-surface-2'
                   }`}
                 >
                   <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -250,16 +251,32 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                     <span className="truncate">{verse.category}</span>
                   </span>
                 </button>
-                {verse.isCustom && onDeleteCustomVerse && (
-                  <button
-                    type="button"
-                    onClick={() => onDeleteCustomVerse(verse.id)}
-                    className="icon-btn mt-3 mr-3 bg-transparent text-ink-3 hover:!bg-danger-soft hover:!text-danger-ink"
-                    aria-label={`Delete ${verse.reference}`}
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </button>
-                )}
+                {verse.isCustom && onDeleteCustomVerse &&
+                  (confirmDeleteId === verse.id ? (
+                    // Second tap confirms. Moving focus away cancels.
+                    <button
+                      type="button"
+                      autoFocus
+                      onClick={() => {
+                        setConfirmDeleteId(null);
+                        onDeleteCustomVerse(verse.id);
+                      }}
+                      onBlur={() => setConfirmDeleteId(null)}
+                      className="mt-3 mr-3 min-h-11 shrink-0 rounded-xl bg-danger px-3 font-display text-sm font-extrabold text-[var(--on-danger)]"
+                      aria-label={`Confirm delete ${verse.reference}`}
+                    >
+                      Delete
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDeleteId(verse.id)}
+                      className="icon-btn mt-3 mr-3 bg-transparent text-ink-3 hover:!bg-danger-soft hover:!text-danger-ink"
+                      aria-label={`Delete ${verse.reference}`}
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                  ))}
               </li>
             );
           })}

@@ -119,9 +119,17 @@ export function App() {
     StorageService.saveProfile(updatedProfile);
   };
 
-  const handleEarnXP = (amount: number, deltaCorrect = true) => {
+  const handleEarnXP = (
+    amount: number,
+    deltaCorrect = true,
+    counter?: 'clozeCompleted' | 'scramblesCompleted'
+  ) => {
     if (!activeVerse) return;
     const { stats: newStats, progress } = StorageService.saveProgress(activeVerse.id, deltaCorrect, amount);
+    if (counter) {
+      newStats[counter] = (newStats[counter] || 0) + 1;
+      StorageService.saveStats(newStats);
+    }
     setStats({ ...newStats });
     setProgressMap((prev) => ({ ...prev, [activeVerse.id]: progress }));
   };
@@ -148,15 +156,16 @@ export function App() {
   const handleAddCustomVerse = (newVerse: Omit<Verse, 'id' | 'isCustom'>) => {
     const created = StorageService.addCustomVerse(newVerse);
     setVerses(StorageService.getVerses());
-    setActiveVerseId(created.id);
+    selectVerseId(created.id);
   };
 
   const handleDeleteCustomVerse = (verseId: string) => {
     const filtered = verses.filter((v) => v.id !== verseId);
     setVerses(filtered);
     StorageService.saveVerses(filtered);
+    // Persist the new active verse too, or a reload would point at the deleted one.
     if (activeVerseId === verseId && filtered.length > 0) {
-      setActiveVerseId(filtered[0].id);
+      selectVerseId(filtered[0].id);
     }
   };
 
@@ -214,7 +223,7 @@ export function App() {
             verse={activeVerse}
             progress={progressMap[activeVerse.id]}
             soundEnabled={stats.soundEnabled}
-            onCorrect={(xp) => handleEarnXP(xp, true)}
+            onCorrect={(xp) => handleEarnXP(xp, true, 'clozeCompleted')}
             onNextVerse={handleNextVerse}
           />
         )}
@@ -237,7 +246,7 @@ export function App() {
           <WordScrambleMode
             verse={activeVerse}
             soundEnabled={stats.soundEnabled}
-            onCorrect={(xp) => handleEarnXP(xp, true)}
+            onCorrect={(xp) => handleEarnXP(xp, true, 'scramblesCompleted')}
             onNextVerse={handleNextVerse}
           />
         )}

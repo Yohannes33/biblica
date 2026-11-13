@@ -1,6 +1,6 @@
 import React from 'react';
 import type { UserProfile, UserStats, Verse, VerseProgress } from '../types/verse';
-import { Flame, Award, Zap, CheckCircle2, BookOpen, Layers, Trophy, Lock, Settings, Sprout, Cloud } from 'lucide-react';
+import { Flame, Award, Zap, CheckCircle2, BookOpen, Layers, Trophy, Lock, Settings, Sprout, Cloud, PenLine, Puzzle } from 'lucide-react';
 import { getLevelProgress, getLevelTitle } from '../utils/level';
 import { ProgressBar, Ring } from './ui/Progress';
 
@@ -33,6 +33,8 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats, profile, isSignedIn
     { label: 'Verses mastered', value: masteredCount, icon: CheckCircle2, chip: 'bg-brand-soft text-brand-ink' },
     { label: 'Still learning', value: learningCount, icon: Sprout, chip: 'bg-teal-soft text-teal-ink' },
     { label: 'Verses in library', value: verses.length, icon: BookOpen, chip: 'bg-surface-2 text-ink-2' },
+    { label: 'Fill-in stages', value: stats.clozeCompleted || 0, icon: PenLine, chip: 'bg-surface-2 text-ink-2' },
+    { label: 'Scrambles solved', value: stats.scramblesCompleted || 0, icon: Puzzle, chip: 'bg-surface-2 text-ink-2' },
     { label: 'Cards reviewed', value: stats.cardsReviewed || 0, icon: Layers, chip: 'bg-surface-2 text-ink-2' },
     { label: 'Trivia rounds', value: stats.quizzesCompleted || 0, icon: Trophy, chip: 'bg-surface-2 text-ink-2' },
   ];
