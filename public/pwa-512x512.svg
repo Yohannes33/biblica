@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#312e81" />
+      <stop offset="50%" stop-color="#1e1b4b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="50%" stop-color="#eab308" />
+      <stop offset="100%" stop-color="#ca8a04" />
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#4338ca" stop-opacity="0" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Background with rounded squircles -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+
+  <!-- Subtle glow ring -->
+  <circle cx="256" cy="240" r="170" fill="url(#glowGrad)" />
+
+  <!-- Open Bible Graphic -->
+  <g filter="url(#shadow)" transform="translate(76, 120)">
+    <!-- Book Left Page -->
+    <path d="M180 200 C 130 190, 40 200, 20 220 L 20 50 C 40 30, 130 20, 180 35 Z" fill="#f8fafc" />
+    <!-- Book Right Page -->
+    <path d="M180 200 C 230 190, 320 200, 340 220 L 340 50 C 320 30, 230 20, 180 35 Z" fill="#f1f5f9" />
+    <!-- Spine -->
+    <path d="M176 34 L 184 34 L 184 202 L 176 202 Z" fill="#94a3b8" />
+
+    <!-- Verse Lines on Left Page -->
+    <line x1="50" y1="70" x2="150" y2="70" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round" />
+    <line x1="50" y1="95" x2="150" y2="95" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round" />
+    <line x1="50" y1="120" x2="130" y2="120" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round" />
+    <line x1="50" y1="145" x2="150" y2="145" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round" />
+
+    <!-- Verse Lines on Right Page -->
+    <line x1="210" y1="70" x2="310" y2="70" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round" />
+    <line x1="210" y1="95" x2="310" y2="95" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round" />
+    <line x1="210" y1="120" x2="280" y2="120" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round" />
+    <line x1="210" y1="145" x2="310" y2="145" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round" />
+
+    <!-- Golden Cross Floating in Center -->
+    <g transform="translate(180, 75)">
+      <circle cx="0" cy="20" r="32" fill="url(#goldGrad)" opacity="0.3" />
+      <!-- Vertical beam -->
+      <rect x="-7" y="-20" width="14" height="68" rx="4" fill="url(#goldGrad)" filter="url(#shadow)" />
+      <!-- Horizontal beam -->
+      <rect x="-24" y="-3" width="48" height="14" rx="4" fill="url(#goldGrad)" />
+      <!-- Radiant sparkles -->
+      <polygon points="0,-32 4,-24 12,-20 4,-16 0,-8 -4,-16 -12,-20 -4,-24" fill="#fef08a" />
+    </g>
+  </g>
+
+  <!-- App Title Accent -->
+  <text x="256" y="420" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="44" fill="#ffffff" letter-spacing="4">BIBLICA</text>
+  <text x="256" y="455" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="18" fill="#a5b4fc" letter-spacing="2">SCRIPTURE MEMORY</text>
+</svg>

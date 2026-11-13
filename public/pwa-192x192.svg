@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <linearGradient id="bgGrad192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#312e81" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="goldGrad192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="50%" stop-color="#eab308" />
+      <stop offset="100%" stop-color="#ca8a04" />
+    </linearGradient>
+  </defs>
+
+  <rect width="192" height="192" rx="48" fill="url(#bgGrad192)" />
+
+  <g transform="translate(32, 45)">
+    <!-- Book Left Page -->
+    <path d="M64 80 C 45 76, 15 80, 5 90 L 5 20 C 15 10, 45 6, 64 12 Z" fill="#f8fafc" />
+    <!-- Book Right Page -->
+    <path d="M64 80 C 83 76, 113 80, 123 90 L 123 20 C 113 10, 83 6, 64 12 Z" fill="#e2e8f0" />
+    <!-- Center line -->
+    <line x1="64" y1="12" x2="64" y2="80" stroke="#94a3b8" stroke-width="2" />
+    <!-- Cross -->
+    <rect x="61" y="24" width="6" height="34" rx="2" fill="url(#goldGrad192)" />
+    <rect x="52" y="32" width="24" height="6" rx="2" fill="url(#goldGrad192)" />
+  </g>
+  <text x="96" y="160" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="800" font-size="20" fill="#ffffff" letter-spacing="2">BIBLICA</text>
+</svg>
