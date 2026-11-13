@@ -3,17 +3,19 @@ import { BookOpen, ChevronDown, Flame, Shuffle } from 'lucide-react';
 import type { UserStats, Verse } from '../types/verse';
 import { getLevelProgress } from '../utils/level';
 import { Ring } from './ui/Progress';
+import { Avatar } from './ui/Avatar';
 
 interface NavbarProps {
   stats: UserStats;
   verse: Verse;
+  avatarSeed: string;
   title?: string; // replaces the verse picker on screens that aren't about one verse
   onOpenLibrary: () => void;
   onShuffle: () => void;
-  onOpenProgress: () => void;
+  onOpenProfile: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ stats, verse, title, onOpenLibrary, onShuffle, onOpenProgress }) => {
+export const Navbar: React.FC<NavbarProps> = ({ stats, verse, avatarSeed, title, onOpenLibrary, onShuffle, onOpenProfile }) => {
   const level = getLevelProgress(stats.xp, stats.level);
 
   return (
@@ -58,15 +60,22 @@ export const Navbar: React.FC<NavbarProps> = ({ stats, verse, title, onOpenLibra
           <span aria-hidden="true">{stats.streakDays}</span>
         </span>
 
+        {/* Profile: avatar inside the XP ring, level badge on the rim. */}
         <button
           type="button"
-          onClick={onOpenProgress}
-          className="rounded-full transition-transform active:scale-95"
-          aria-label={`Level ${stats.level}, ${stats.xp} XP, ${level.toNext} XP to level ${stats.level + 1}. Open progress`}
+          onClick={onOpenProfile}
+          className="relative rounded-full transition-transform active:scale-95"
+          aria-label={`Profile and settings. Level ${stats.level}, ${level.toNext} XP to level ${stats.level + 1}`}
         >
-          <Ring value={level.percent} size={44} stroke={4} tone="gold">
-            <span className="font-display text-[0.9375rem] font-extrabold tabular-nums">{stats.level}</span>
+          <Ring value={level.percent} size={44} stroke={3} tone="gold">
+            <Avatar seed={avatarSeed} size={34} />
           </Ring>
+          <span
+            className="absolute -right-1 -bottom-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-gold px-1 font-display text-[0.6875rem] leading-none font-extrabold text-[oklch(0.28_0.06_70)] ring-2 ring-[var(--surface)] tabular-nums"
+            aria-hidden="true"
+          >
+            {stats.level}
+          </span>
         </button>
       </div>
     </header>

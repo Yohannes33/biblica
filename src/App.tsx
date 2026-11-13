@@ -10,6 +10,7 @@ import { AccountModal } from './components/AccountModal';
 import { StatsView } from './components/StatsView';
 import { StorageService } from './utils/storage';
 import { SupabaseService } from './lib/supabase';
+import { newAvatarSeed } from './utils/avatar';
 import type { AppTab, UserProfile, UserStats, Verse, VerseProgress } from './types/verse';
 
 // Matches the top bar (--surface in index.css) so Android's status bar blends into it.
@@ -41,7 +42,13 @@ export function App() {
     setVerses(loadedVerses);
     const loadedStats = StorageService.getStats();
     setStats(loadedStats);
-    setProfile(StorageService.getProfile());
+    // Give everyone a generated avatar; the seed is random and stays on device.
+    const loadedProfile = StorageService.getProfile();
+    if (!loadedProfile.avatarSeed) {
+      loadedProfile.avatarSeed = newAvatarSeed();
+      StorageService.saveProfile(loadedProfile);
+    }
+    setProfile(loadedProfile);
     setProgressMap(StorageService.getProgressMap());
 
     if (loadedVerses.length > 0) {
@@ -211,10 +218,11 @@ export function App() {
       <Navbar
         stats={stats}
         verse={activeVerse}
+        avatarSeed={profile.avatarSeed || 'biblica'}
         title={currentTab === 'account' ? 'Your progress' : undefined}
         onOpenLibrary={() => setIsLibraryOpen(true)}
         onShuffle={handleRandomVerse}
-        onOpenProgress={() => setCurrentTab('account')}
+        onOpenProfile={() => setIsAccountOpen(true)}
       />
 
       <main id="main" className="pb-tabbar flex flex-1 flex-col">

@@ -3,6 +3,7 @@ import type { UserProfile, UserStats, Verse, VerseProgress } from '../types/vers
 import { Flame, Award, Zap, CheckCircle2, BookOpen, Layers, Trophy, Lock, Settings, Sprout, Cloud, PenLine, Puzzle } from 'lucide-react';
 import { getLevelProgress, getLevelTitle } from '../utils/level';
 import { ProgressBar, Ring } from './ui/Progress';
+import { Avatar } from './ui/Avatar';
 
 interface StatsViewProps {
   stats: UserStats;
@@ -44,13 +45,7 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats, profile, isSignedIn
       {/* Profile + level */}
       <section className="card p-5">
         <div className="flex items-center gap-3">
-          {profile.avatarUrl ? (
-            <img src={profile.avatarUrl} alt="" referrerPolicy="no-referrer" className="h-14 w-14 shrink-0 rounded-full object-cover" />
-          ) : (
-            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-brand font-display text-2xl font-extrabold text-on-brand">
-              {profile.name.charAt(0).toUpperCase() || 'P'}
-            </span>
-          )}
+          <Avatar seed={profile.avatarSeed || 'biblica'} size={56} />
           <div className="min-w-0 flex-1">
             <h2 className="truncate font-display text-xl font-extrabold">{profile.name}</h2>
             <p className="truncate text-sm text-ink-3">{getLevelTitle(stats.level)}</p>
