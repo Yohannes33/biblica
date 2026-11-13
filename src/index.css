@@ -536,14 +536,18 @@
 
 /* Native <dialog>: bottom sheet on phones, centred panel from 640px. */
 dialog.sheet {
-  margin: auto auto 0;
-  width: 100%;
-  max-width: 100%;
-  /* A definite height (not only max-height): WebKit resolves the body's flex
-     basis against it; with max-height alone the verse list collapsed on iPhone.
-     vh first for browsers without dvh. */
-  height: calc(100vh - var(--safe-top) - 1.5rem);
-  height: calc(100dvh - var(--safe-top) - 1.5rem);
+  /*
+   * Pin the edges instead of computing a height. 100vh/100dvh can be taller
+   * than the box a fixed <dialog> sits in on iPhone (toolbars and the home
+   * indicator are measured differently), and WebKit then crops the bottom.
+   * With top and bottom both set, the height always fits that box and is
+   * still definite, so the scrolling body can't collapse either.
+   */
+  inset: calc(var(--safe-top) + 0.75rem) 0 0 0;
+  margin: 0;
+  width: auto;
+  max-width: none;
+  height: auto;
   max-height: none;
   padding: 0;
   border: none;
@@ -567,10 +571,11 @@ dialog.sheet::backdrop {
 
 @media (min-width: 640px) {
   dialog.sheet {
+    /* Centred panel; percentages resolve against the same box as the insets. */
+    inset: 0;
     margin: auto;
-    max-width: 36rem;
-    height: min(46rem, calc(100vh - 4rem));
-    height: min(46rem, calc(100dvh - 4rem));
+    width: min(36rem, calc(100% - 2rem));
+    height: min(46rem, calc(100% - 4rem));
     border-radius: 1.75rem;
   }
 
