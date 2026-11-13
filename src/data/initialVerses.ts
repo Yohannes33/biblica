@@ -133,5 +133,203 @@ export const INITIAL_VERSES: Verse[] = [
     category: 'Hope & Comfort',
     translation: 'KJV',
     tags: ['rest', 'comfort', 'peace']
+  },
+  {
+    id: 'john-14-6',
+    reference: 'John 14:6',
+    book: 'John',
+    chapter: 14,
+    verseNum: '6',
+    text: "Jesus saith unto him, I am the way, the truth, and the life: no man cometh unto the Father, but by me.",
+    category: 'Essential Classics',
+    translation: 'KJV',
+    tags: ['jesus', 'truth', 'salvation']
+  },
+  {
+    id: 'gen-1-1',
+    reference: 'Genesis 1:1',
+    book: 'Genesis',
+    chapter: 1,
+    verseNum: '1',
+    text: "In the beginning God created the heaven and the earth.",
+    category: 'Essential Classics',
+    translation: 'KJV',
+    tags: ['creation', 'beginning']
+  },
+  {
+    id: 'john-14-27',
+    reference: 'John 14:27',
+    book: 'John',
+    chapter: 14,
+    verseNum: '27',
+    text: "Peace I leave with you, my peace I give unto you: not as the world giveth, give I unto you. Let not your heart be troubled, neither let it be afraid.",
+    category: 'Peace & Anxiety',
+    translation: 'KJV',
+    tags: ['peace', 'fear']
+  },
+  {
+    id: '1pet-5-7',
+    reference: '1 Peter 5:7',
+    book: '1 Peter',
+    chapter: 5,
+    verseNum: '7',
+    text: "Casting all your care upon him; for he careth for you.",
+    category: 'Peace & Anxiety',
+    translation: 'KJV',
+    tags: ['anxiety', 'care']
+  },
+  {
+    id: 'psalm-46-1',
+    reference: 'Psalm 46:1',
+    book: 'Psalms',
+    chapter: 46,
+    verseNum: '1',
+    text: "God is our refuge and strength, a very present help in trouble.",
+    category: 'Strength & Courage',
+    translation: 'KJV',
+    tags: ['refuge', 'strength']
+  },
+  {
+    id: 'isa-41-10',
+    reference: 'Isaiah 41:10',
+    book: 'Isaiah',
+    chapter: 41,
+    verseNum: '10',
+    text: "Fear thou not; for I am with thee: be not dismayed; for I am thy God: I will strengthen thee; yea, I will help thee; yea, I will uphold thee with the right hand of my righteousness.",
+    category: 'Strength & Courage',
+    translation: 'KJV',
+    tags: ['fear', 'strength']
+  },
+  {
+    id: 'deut-31-6',
+    reference: 'Deuteronomy 31:6',
+    book: 'Deuteronomy',
+    chapter: 31,
+    verseNum: '6',
+    text: "Be strong and of a good courage, fear not, nor be afraid of them: for the LORD thy God, he it is that doth go with thee; he will not fail thee, nor forsake thee.",
+    category: 'Strength & Courage',
+    translation: 'KJV',
+    tags: ['courage', 'faithfulness']
+  },
+  {
+    id: '1john-4-19',
+    reference: '1 John 4:19',
+    book: '1 John',
+    chapter: 4,
+    verseNum: '19',
+    text: "We love him, because he first loved us.",
+    category: 'Love & Kindness',
+    translation: 'KJV',
+    tags: ['love']
+  },
+  {
+    id: 'gal-5-22-23',
+    reference: 'Galatians 5:22-23',
+    book: 'Galatians',
+    chapter: 5,
+    verseNum: '22-23',
+    text: "But the fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, faith, Meekness, temperance: against such there is no law.",
+    category: 'Love & Kindness',
+    translation: 'KJV',
+    tags: ['spirit', 'fruit', 'character']
+  },
+  {
+    id: 'heb-11-1',
+    reference: 'Hebrews 11:1',
+    book: 'Hebrews',
+    chapter: 11,
+    verseNum: '1',
+    text: "Now faith is the substance of things hoped for, the evidence of things not seen.",
+    category: 'Faith & Salvation',
+    translation: 'KJV',
+    tags: ['faith', 'hope']
+  },
+  {
+    id: 'rom-10-9',
+    reference: 'Romans 10:9',
+    book: 'Romans',
+    chapter: 10,
+    verseNum: '9',
+    text: "That if thou shalt confess with thy mouth the Lord Jesus, and shalt believe in thine heart that God hath raised him from the dead, thou shalt be saved.",
+    category: 'Faith & Salvation',
+    translation: 'KJV',
+    tags: ['salvation', 'confession']
+  },
+  {
+    id: 'matt-6-33',
+    reference: 'Matthew 6:33',
+    book: 'Matthew',
+    chapter: 6,
+    verseNum: '33',
+    text: "But seek ye first the kingdom of God, and his righteousness; and all these things shall be added unto you.",
+    category: 'Faith & Salvation',
+    translation: 'KJV',
+    tags: ['kingdom', 'priorities']
+  },
+  {
+    id: 'rom-12-2',
+    reference: 'Romans 12:2',
+    book: 'Romans',
+    chapter: 12,
+    verseNum: '2',
+    text: "And be not conformed to this world: but be ye transformed by the renewing of your mind, that ye may prove what is that good, and acceptable, and perfect, will of God.",
+    category: 'Wisdom & Guidance',
+    translation: 'KJV',
+    tags: ['mind', 'transformation']
+  },
+  {
+    id: 'james-1-5',
+    reference: 'James 1:5',
+    book: 'James',
+    chapter: 1,
+    verseNum: '5',
+    text: "If any of you lack wisdom, let him ask of God, that giveth to all men liberally, and upbraideth not; and it shall be given him.",
+    category: 'Wisdom & Guidance',
+    translation: 'KJV',
+    tags: ['wisdom', 'prayer']
+  },
+  {
+    id: 'micah-6-8',
+    reference: 'Micah 6:8',
+    book: 'Micah',
+    chapter: 6,
+    verseNum: '8',
+    text: "He hath shewed thee, O man, what is good; and what doth the LORD require of thee, but to do justly, and to love mercy, and to walk humbly with thy God?",
+    category: 'Wisdom & Guidance',
+    translation: 'KJV',
+    tags: ['justice', 'mercy', 'humility']
+  },
+  {
+    id: 'jer-29-11',
+    reference: 'Jeremiah 29:11',
+    book: 'Jeremiah',
+    chapter: 29,
+    verseNum: '11',
+    text: "For I know the thoughts that I think toward you, saith the LORD, thoughts of peace, and not of evil, to give you an expected end.",
+    category: 'Hope & Comfort',
+    translation: 'KJV',
+    tags: ['hope', 'future']
+  },
+  {
+    id: 'lam-3-22-23',
+    reference: 'Lamentations 3:22-23',
+    book: 'Lamentations',
+    chapter: 3,
+    verseNum: '22-23',
+    text: "It is of the LORD's mercies that we are not consumed, because his compassions fail not. They are new every morning: great is thy faithfulness.",
+    category: 'Hope & Comfort',
+    translation: 'KJV',
+    tags: ['mercy', 'faithfulness']
+  },
+  {
+    id: 'psalm-34-8',
+    reference: 'Psalm 34:8',
+    book: 'Psalms',
+    chapter: 34,
+    verseNum: '8',
+    text: "O taste and see that the LORD is good: blessed is the man that trusteth in him.",
+    category: 'Hope & Comfort',
+    translation: 'KJV',
+    tags: ['goodness', 'trust']
   }
 ];
