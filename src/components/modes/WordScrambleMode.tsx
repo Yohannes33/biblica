@@ -20,6 +20,11 @@ interface TileItem {
 }
 
 const SCRAMBLE_XP = 35;
+// Hints are a boost, not a walkthrough: a small budget per verse, topped up
+// by placing words correctly on your own.
+const HINTS_PER_VERSE = 3;
+const STREAK_FOR_HINT = 5;
+const MAX_HINTS = 5;
 
 export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, soundEnabled, onCorrect, onNextVerse }) => {
   const [selectedTiles, setSelectedTiles] = useState<TileItem[]>([]);
@@ -27,6 +32,9 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, sound
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const [wrongTileId, setWrongTileId] = useState<string | null>(null);
   const [hintIndex, setHintIndex] = useState<number | null>(null);
+  const [hintsLeft, setHintsLeft] = useState(HINTS_PER_VERSE);
+  const [streak, setStreak] = useState(0);
+  const [earnedFlash, setEarnedFlash] = useState(false);
   const completeRef = useRevealOnShow<HTMLElement>(isCompleted);
 
   const words = useMemo(() => verse.text.split(/\s+/).filter(Boolean), [verse.text]);
@@ -37,6 +45,15 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, sound
     setSelectedTiles([]);
     setIsCompleted(false);
     setHintIndex(null);
+    setHintsLeft(HINTS_PER_VERSE);
+    setStreak(0);
+    setEarnedFlash(false);
+  };
+
+  const takeHint = () => {
+    if (hintsLeft <= 0 || hintIndex !== null || isCompleted) return;
+    setHintsLeft((n) => n - 1);
+    setHintIndex(selectedTiles.length);
   };
 
   useEffect(() => {
@@ -52,6 +69,20 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, sound
       setSelectedTiles(newSelected);
       setAvailableTiles((prev) => prev.filter((t) => t.id !== tile.id));
       setWrongTileId(null);
+      // A word found with a hint doesn't count toward earning the next one.
+      if (hintIndex === null) {
+        const next = streak + 1;
+        if (next >= STREAK_FOR_HINT) {
+          setStreak(0);
+          if (hintsLeft < MAX_HINTS) {
+            setHintsLeft((n) => Math.min(MAX_HINTS, n + 1));
+            setEarnedFlash(true);
+            window.setTimeout(() => setEarnedFlash(false), 1800);
+          }
+        } else {
+          setStreak(next);
+        }
+      }
       setHintIndex(null);
 
       if (newSelected.length === words.length) {
@@ -62,6 +93,7 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, sound
       }
     } else {
       playSound.incorrect(soundEnabled);
+      setStreak(0);
       setWrongTileId(tile.id);
       setTimeout(() => setWrongTileId(null), 600);
     }
@@ -72,21 +104,45 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, sound
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
           <h2 className="font-display text-xl font-extrabold tracking-tight">Rebuild the verse</h2>
-          <p className="text-sm text-ink-3">Tap the words in order.</p>
+          <p className="text-sm text-ink-3" aria-live="polite">
+            {isCompleted
+              ? 'Tap the words in order.'
+              : hintsLeft >= MAX_HINTS
+                ? 'Tap the words in order.'
+                : `${STREAK_FOR_HINT - streak} in a row earns a hint`}
+          </p>
         </div>
         <button
           type="button"
-          onClick={() => setHintIndex(selectedTiles.length)}
-          disabled={isCompleted}
-          className="btn btn-sm btn-secondary"
+          onClick={takeHint}
+          disabled={isCompleted || hintsLeft <= 0 || hintIndex !== null}
+          className="btn btn-sm btn-secondary relative"
+          aria-label={`Hint, ${hintsLeft} left`}
         >
           <Lightbulb className="h-[18px] w-[18px] text-gold-ink" strokeWidth={2.5} />
           Hint
+          <span
+            className={`grid h-6 min-w-6 place-items-center rounded-full px-1.5 text-[0.8125rem] tabular-nums ${
+              hintsLeft > 0 ? 'bg-gold text-[oklch(0.28_0.06_70)]' : 'bg-surface-3 text-ink-3'
+            } ${earnedFlash ? 'animate-pop' : ''}`}
+            aria-hidden="true"
+          >
+            {hintsLeft}
+          </span>
         </button>
         <button type="button" onClick={setupPuzzle} className="icon-btn" aria-label="Shuffle and restart" title="Restart">
           <RotateCcw className="h-5 w-5" />
         </button>
       </div>
+
+      {/* Floats over the page so the word tiles never shift under a finger. */}
+      {earnedFlash && (
+        <div className="pointer-events-none fixed inset-x-0 top-[calc(var(--safe-top)+4.75rem)] z-40 flex justify-center">
+          <p role="status" className="animate-pop rounded-full bg-gold px-4 py-1.5 font-display font-extrabold text-[oklch(0.28_0.06_70)] shadow-lg">
+            +1 hint earned!
+          </p>
+        </div>
+      )}
 
       {/* Built sentence */}
       <article className="card flex min-h-44 flex-col p-5 sm:p-6" aria-label={`${verse.reference}, words placed so far`}>
