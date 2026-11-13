@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Navbar } from './components/Navbar';
 import { BottomNav } from './components/BottomNav';
 import { FillBlankMode } from './components/modes/FillBlankMode';
@@ -11,6 +11,9 @@ import { StatsView } from './components/StatsView';
 import { StorageService } from './utils/storage';
 import { SupabaseService } from './lib/supabase';
 import { newAvatarSeed } from './utils/avatar';
+import { buildReviewQueue, mergeProgress, startOfDay } from './utils/srs';
+
+const LAST_USER_KEY = 'biblica_last_user';
 import type { AppTab, UserProfile, UserStats, Verse, VerseProgress } from './types/verse';
 
 // Matches the top bar (--surface in index.css) so Android's status bar blends into it.
@@ -89,7 +92,26 @@ export function App() {
               setStats((prev) => ({ ...prev, ...remote.stats }));
             }
             if (remote?.progressMap) {
-              setProgressMap(remote.progressMap);
+              // Same account: merge, so the local review schedule survives.
+              // A different account on this device: replace, so one person's
+              // progress is never pushed into someone else's account.
+              let lastUser: string | null = null;
+              try {
+                lastUser = localStorage.getItem(LAST_USER_KEY);
+                localStorage.setItem(LAST_USER_KEY, u.id);
+              } catch {
+                // storage unavailable
+              }
+              const switchedAccount = !!lastUser && lastUser !== u.id;
+              setProgressMap((prev) => {
+                const merged = switchedAccount ? remote.progressMap ?? {} : mergeProgress(prev, remote.progressMap);
+                try {
+                  localStorage.setItem('biblica_progress_v1', JSON.stringify(merged));
+                } catch {
+                  // storage unavailable; in-memory state still updated
+                }
+                return merged;
+              });
             }
           } catch (e) {
             console.error('Failed syncing data down on auth change', e);
@@ -107,6 +129,25 @@ export function App() {
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [currentTab]);
+
+  // Cards waiting today (due reviews + new cards allowed by the daily goal).
+  // Recount when the date changes (a PWA can stay open overnight).
+  const [today, setToday] = useState(() => startOfDay(Date.now()));
+  useEffect(() => {
+    const check = () => setToday(startOfDay(Date.now()));
+    const timer = window.setInterval(check, 60_000);
+    document.addEventListener('visibilitychange', check);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', check);
+    };
+  }, []);
+
+  const cardsDue = useMemo(
+    () => buildReviewQueue(verses, progressMap, profile.dailyGoalVerses).ids.length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `today` forces a recount at midnight
+    [verses, progressMap, profile.dailyGoalVerses, today]
+  );
 
   const activeVerse = verses.find((v) => v.id === activeVerseId) || verses[0];
 
@@ -186,13 +227,15 @@ export function App() {
     newProgress: Record<string, VerseProgress>,
     newVerses: Verse[]
   ) => {
+    // Merge, don't replace: the cloud doesn't store the review schedule.
+    const mergedProgress = mergeProgress(progressMap, newProgress);
     setStats(newStats);
-    setProgressMap(newProgress);
+    setProgressMap(mergedProgress);
     setVerses(newVerses);
     StorageService.saveStats(newStats);
     StorageService.saveVerses(newVerses);
     try {
-      localStorage.setItem('biblica_progress_v1', JSON.stringify(newProgress));
+      localStorage.setItem('biblica_progress_v1', JSON.stringify(mergedProgress));
     } catch {
       // storage unavailable (private mode); in-memory state still updated
     }
@@ -239,11 +282,11 @@ export function App() {
         {currentTab === 'flashcards' && (
           <FlashcardMode
             verses={verses}
+            progressMap={progressMap}
+            dailyNew={profile.dailyGoalVerses}
             soundEnabled={stats.soundEnabled}
-            onRate={(verseId, _rating, xp) => {
-              const { stats: newStats, progress } = StorageService.saveProgress(verseId, true, xp);
-              newStats.cardsReviewed = (newStats.cardsReviewed || 0) + 1;
-              StorageService.saveStats(newStats);
+            onRate={(verseId, rating, xp) => {
+              const { stats: newStats, progress } = StorageService.reviewCard(verseId, rating, xp);
               setStats({ ...newStats });
               setProgressMap((prev) => ({ ...prev, [verseId]: progress }));
             }}
@@ -280,6 +323,7 @@ export function App() {
             canSignIn={SupabaseService.isConfigured()}
             verses={verses}
             progressMap={progressMap}
+            cardsDue={cardsDue}
             onOpenSettings={() => setIsAccountOpen(true)}
           />
         )}
@@ -309,7 +353,7 @@ export function App() {
         onDataSynced={handleDataSynced}
       />
 
-      <BottomNav currentTab={currentTab} onSelectTab={setCurrentTab} />
+      <BottomNav currentTab={currentTab} onSelectTab={setCurrentTab} badges={{ flashcards: cardsDue }} />
     </div>
   );
 }

@@ -41,6 +41,12 @@ create table if not exists public.verse_progress (
   correct_answers int default 0,
   cloze_stage int default 1,
   last_practiced bigint not null,
+  srs_due bigint,
+  srs_interval integer,
+  srs_ease real,
+  srs_reps integer,
+  srs_lapses integer,
+  srs_introduced bigint,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   unique (user_id, verse_id)
 );

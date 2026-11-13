@@ -32,6 +32,13 @@ export interface VerseProgress {
   correctAnswers: number;
   lastPracticed: number;
   clozeStage: number;
+  // Flashcard review schedule (see utils/srs.ts). Absent until first rated.
+  srsDue?: number; // local midnight of the day the card is next due
+  srsInterval?: number; // days
+  srsEase?: number;
+  srsReps?: number; // consecutive successful reviews
+  srsLapses?: number;
+  srsIntroduced?: number; // when the card was first reviewed
 }
 
 export interface UserProfile {

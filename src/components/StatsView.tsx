@@ -1,6 +1,6 @@
 import React from 'react';
 import type { UserProfile, UserStats, Verse, VerseProgress } from '../types/verse';
-import { Flame, Award, Zap, CheckCircle2, BookOpen, Layers, Trophy, Lock, Settings, Sprout, Cloud, PenLine, Puzzle } from 'lucide-react';
+import { Flame, Award, Zap, CheckCircle2, BookOpen, Layers, Trophy, Lock, Settings, Sprout, Cloud, PenLine, Puzzle, CalendarClock } from 'lucide-react';
 import { getLevelProgress, getLevelTitle } from '../utils/level';
 import { ProgressBar, Ring } from './ui/Progress';
 import { Avatar } from './ui/Avatar';
@@ -12,10 +12,11 @@ interface StatsViewProps {
   canSignIn: boolean;
   verses: Verse[];
   progressMap: Record<string, VerseProgress>;
+  cardsDue: number;
   onOpenSettings: () => void;
 }
 
-export const StatsView: React.FC<StatsViewProps> = ({ stats, profile, isSignedIn, canSignIn, verses, progressMap, onOpenSettings }) => {
+export const StatsView: React.FC<StatsViewProps> = ({ stats, profile, isSignedIn, canSignIn, verses, progressMap, cardsDue, onOpenSettings }) => {
   const progressValues = Object.values(progressMap);
   const masteredCount = progressValues.filter((p) => p.masteryScore >= 80).length;
   const learningCount = progressValues.filter((p) => p.masteryScore > 0 && p.masteryScore < 80).length;
@@ -30,6 +31,7 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats, profile, isSignedIn
   const unlockedCount = badges.filter((b) => b.unlocked).length;
 
   const rows = [
+    { label: 'Cards to review today', value: cardsDue, icon: CalendarClock, chip: 'bg-danger-soft text-danger-ink' },
     { label: 'Day streak', value: stats.streakDays, icon: Flame, chip: 'bg-flame-soft text-flame-ink' },
     { label: 'Verses mastered', value: masteredCount, icon: CheckCircle2, chip: 'bg-brand-soft text-brand-ink' },
     { label: 'Still learning', value: learningCount, icon: Sprout, chip: 'bg-teal-soft text-teal-ink' },
