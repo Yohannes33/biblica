@@ -9,6 +9,7 @@ import { LibraryModal } from './components/LibraryModal';
 import { AccountModal } from './components/AccountModal';
 import { StatsView } from './components/StatsView';
 import { StorageService } from './utils/storage';
+import { SupabaseService } from './lib/supabase';
 import type { AppTab, UserProfile, UserStats, Verse, VerseProgress } from './types/verse';
 import { Bookmark, Shuffle, ChevronRight } from 'lucide-react';
 
@@ -21,6 +22,7 @@ export function App() {
   const [currentTab, setCurrentTab] = useState<AppTab>('cloze');
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   // Apply theme class to <html> element
   useEffect(() => {
@@ -45,6 +47,53 @@ export function App() {
 
     if (loadedVerses.length > 0) {
       setActiveVerseId(loadedStats.activeVerseId || loadedVerses[0].id);
+    }
+
+    if (SupabaseService.isConfigured()) {
+      SupabaseService.getCurrentUser().then((u) => {
+        if (u) {
+          setCurrentUser(u);
+          const name = u.user_metadata?.full_name || u.email?.split('@')[0] || 'Pilgrim';
+          setProfile((prev) => ({
+            ...prev,
+            name,
+            email: u.email || '',
+            avatarUrl: u.user_metadata?.avatar_url || '',
+          }));
+        }
+      });
+
+      const subscription = SupabaseService.onAuthStateChange(async (u) => {
+        setCurrentUser(u);
+        if (u) {
+          const name = u.user_metadata?.full_name || u.email?.split('@')[0] || 'Pilgrim';
+          setProfile((prev) => {
+            const updated = {
+              ...prev,
+              name,
+              email: u.email || '',
+              avatarUrl: u.user_metadata?.avatar_url || '',
+            };
+            StorageService.saveProfile(updated);
+            return updated;
+          });
+          try {
+            const remote = await SupabaseService.syncDown();
+            if (remote?.stats) {
+              setStats((prev) => ({ ...prev, ...remote.stats }));
+            }
+            if (remote?.progressMap) {
+              setProgressMap(remote.progressMap);
+            }
+          } catch (e) {
+            console.error('Failed syncing data down on auth change', e);
+          }
+        }
+      });
+
+      return () => {
+        subscription?.unsubscribe?.();
+      };
     }
   }, []);
 
@@ -157,6 +206,7 @@ export function App() {
       <Navbar
         stats={stats}
         profile={profile}
+        currentUser={currentUser}
         onToggleSound={handleToggleSound}
         onOpenLibrary={() => setIsLibraryOpen(true)}
         onOpenAccount={() => setIsAccountOpen(true)}

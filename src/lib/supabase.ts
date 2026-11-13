@@ -76,6 +76,26 @@ export const SupabaseService = {
     });
   },
 
+  signInWithGoogle: async () => {
+    const client = getSupabase();
+    if (!client) throw new Error('Supabase client is not configured.');
+    return await client.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+  },
+
+  onAuthStateChange: (callback: (user: any) => void) => {
+    const client = getSupabase();
+    if (!client) return { unsubscribe: () => {} };
+    const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
+      callback(session?.user || null);
+    });
+    return subscription;
+  },
+
   signOut: async () => {
     const client = getSupabase();
     if (client) {
