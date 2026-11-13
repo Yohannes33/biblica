@@ -7,6 +7,7 @@ import { WordScrambleMode } from './components/modes/WordScrambleMode';
 import { TriviaQuizMode } from './components/modes/TriviaQuizMode';
 import { LibraryModal } from './components/LibraryModal';
 import { AccountModal } from './components/AccountModal';
+import { StatsView } from './components/StatsView';
 import { StorageService } from './utils/storage';
 import type { AppTab, UserProfile, UserStats, Verse, VerseProgress } from './types/verse';
 import { Bookmark, Shuffle, ChevronRight } from 'lucide-react';
@@ -257,13 +258,25 @@ export function App() {
         )}
 
         {currentTab === 'account' && (
-          <div className="max-w-2xl mx-auto p-4 w-full">
-            <button
-              onClick={() => setIsAccountOpen(true)}
-              className="w-full py-4 rounded-3xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-base shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 btn-press"
-            >
-              <span>Open Full Account & Cloud Sync Settings</span>
-            </button>
+          <div className="flex-1 flex flex-col">
+            <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-4 w-full flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-md">
+                  {profile.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">{profile.name}</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{profile.email}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsAccountOpen(true)}
+                className="px-4 py-2 rounded-xl theme-card border border-inherit text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-white shadow-sm btn-press"
+              >
+                Settings & Sync
+              </button>
+            </div>
+            <StatsView stats={stats} verses={verses} progressMap={progressMap} />
           </div>
         )}
       </main>
@@ -299,8 +312,6 @@ export function App() {
         onSelectTab={(tab) => {
           if (tab === 'library') {
             setIsLibraryOpen(true);
-          } else if (tab === 'account') {
-            setIsAccountOpen(true);
           } else {
             setCurrentTab(tab);
           }

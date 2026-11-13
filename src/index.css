@@ -74,11 +74,13 @@
 /* App Theme Cards */
 .theme-canvas {
   background-color: var(--bg-main);
+  color: var(--text-primary);
   min-height: 100vh;
 }
 
 .theme-card {
   background-color: var(--bg-surface);
+  color: var(--text-primary);
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-card);
   transition: all 180ms ease;
@@ -86,12 +88,14 @@
 
 .theme-card-elevated {
   background-color: var(--bg-surface-elevated);
+  color: var(--text-primary);
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-card);
 }
 
 .theme-subtle {
   background-color: var(--bg-subtle);
+  color: var(--text-primary);
   border: 1px solid var(--border-subtle);
 }
 
