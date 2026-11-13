@@ -265,7 +265,9 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
         <section aria-label="Word choices">
           <div className="mb-2.5 flex items-center justify-between px-1">
             <h2 className="font-display text-base font-extrabold text-ink-2">Pick the missing word</h2>
-            <span className="pill bg-gold-soft text-gold-ink">+{level * 5} XP</span>
+            <span className="pill bg-gold-soft text-gold-ink" title="Earned when you finish this stage">
+              +{stageXp(level)} XP<span className="sr-only"> when you finish this stage</span>
+            </span>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {options.map((option, i) => (
