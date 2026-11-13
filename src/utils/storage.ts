@@ -37,7 +37,17 @@ export const StorageService = {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.VERSES);
       if (stored) {
-        return JSON.parse(stored);
+        const verses: Verse[] = JSON.parse(stored);
+        // A saved library is a snapshot; append built-in verses added since
+        // (built-ins can't be deleted, so a missing id is always a new one).
+        const have = new Set(verses.map((v) => v.id));
+        const added = INITIAL_VERSES.filter((v) => !have.has(v.id));
+        if (added.length) {
+          const merged = [...verses, ...added];
+          localStorage.setItem(STORAGE_KEYS.VERSES, JSON.stringify(merged));
+          return merged;
+        }
+        return verses;
       }
     } catch (e) {
       console.error('Failed to read verses from localStorage', e);
