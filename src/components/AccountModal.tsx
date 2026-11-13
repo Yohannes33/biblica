@@ -221,10 +221,10 @@ export const AccountModal: React.FC<AccountModalProps> = ({
               aria-checked={stats.soundEnabled}
               aria-label="Sound effects"
               onClick={onToggleSound}
-              className={`relative h-8 w-[3.25rem] shrink-0 rounded-full transition-colors ${stats.soundEnabled ? 'bg-brand' : 'bg-surface-3'}`}
+              className={`relative h-[31px] w-[51px] shrink-0 rounded-full transition-colors ${stats.soundEnabled ? 'bg-brand' : 'bg-surface-3'}`}
             >
               <span
-                className={`absolute top-1 left-1 h-6 w-6 rounded-full bg-white shadow transition-transform duration-200 ${
+                className={`absolute top-[2px] left-[2px] h-[27px] w-[27px] rounded-full bg-white shadow-[0_3px_8px_oklch(0_0_0/0.15),0_1px_1px_oklch(0_0_0/0.16)] transition-transform duration-200 ${
                   stats.soundEnabled ? 'translate-x-5' : ''
                 }`}
               />

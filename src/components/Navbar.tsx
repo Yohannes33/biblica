@@ -17,7 +17,7 @@ export const Navbar: React.FC<NavbarProps> = ({ stats, verse, title, onOpenLibra
   const level = getLevelProgress(stats.xp, stats.level);
 
   return (
-    <header className="material-bar sticky top-0 z-30 border-b border-line pt-safe">
+    <header className="material-bar sticky top-0 z-30 pt-safe shadow-[inset_0_-0.5px_0_var(--line-strong)]">
       <div className="mx-auto flex h-16 w-full max-w-xl items-center gap-2 px-4">
         {title ? (
           <h1 className="min-w-0 flex-1 truncate font-display text-[1.375rem] font-extrabold tracking-tight">{title}</h1>

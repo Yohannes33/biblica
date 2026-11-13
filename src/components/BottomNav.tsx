@@ -7,7 +7,9 @@ interface BottomNavProps {
   onSelectTab: (tab: AppTab) => void;
 }
 
-const TABS: { id: AppTab; label: string; icon: React.FC<{ className?: string; strokeWidth?: number }> }[] = [
+type IconProps = { className?: string; strokeWidth?: number; fill?: string; fillOpacity?: number };
+
+const TABS: { id: AppTab; label: string; icon: React.FC<IconProps> }[] = [
   { id: 'cloze', label: 'Fill In', icon: PenLine },
   { id: 'flashcards', label: 'Cards', icon: Layers },
   { id: 'scramble', label: 'Scramble', icon: Puzzle },
@@ -15,9 +17,17 @@ const TABS: { id: AppTab; label: string; icon: React.FC<{ className?: string; st
   { id: 'account', label: 'Progress', icon: Trophy },
 ];
 
+/**
+ * iOS tab bar per Apple's HIG: 49pt tall above the home indicator, a hairline
+ * top separator, translucent material, SF Pro 10pt labels, and selection shown
+ * by tint plus a filled glyph (no pill behind the icon, which is Material).
+ */
 export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onSelectTab }) => (
-  <nav aria-label="Practice modes" className="material-bar fixed inset-x-0 bottom-0 z-30 border-t border-line pb-[var(--safe-bottom)]">
-    <ul className="mx-auto flex h-[var(--tabbar-h)] max-w-xl items-stretch px-2">
+  <nav
+    aria-label="Practice modes"
+    className="material-bar fixed inset-x-0 bottom-0 z-30 pb-[var(--safe-bottom)] shadow-[inset_0_0.5px_0_var(--line-strong)]"
+  >
+    <ul className="mx-auto flex h-[var(--tabbar-h)] max-w-xl items-stretch">
       {TABS.map(({ id, label, icon: Icon }) => {
         const isActive = currentTab === id;
         return (
@@ -26,17 +36,16 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onSelectTab })
               type="button"
               onClick={() => onSelectTab(id)}
               aria-current={isActive ? 'page' : undefined}
-              className={`group flex flex-1 flex-col items-center justify-center gap-0.5 font-display text-[0.6875rem] font-extrabold transition-colors ${
-                isActive ? 'text-brand-ink' : 'text-ink-3 hover:text-ink'
+              className={`flex flex-1 flex-col items-center justify-center gap-[3px] pt-1 font-sans text-[0.625rem] leading-none font-medium tracking-[0.01em] transition-opacity duration-150 active:opacity-50 ${
+                isActive ? 'text-brand' : 'text-ink-3'
               }`}
             >
-              <span
-                className={`grid h-8 w-14 place-items-center rounded-full transition-[background-color,transform] duration-200 group-active:scale-90 ${
-                  isActive ? 'bg-brand-soft' : ''
-                }`}
-              >
-                <Icon className="h-[22px] w-[22px]" strokeWidth={isActive ? 2.5 : 2} />
-              </span>
+              <Icon
+                className="h-[25px] w-[25px]"
+                strokeWidth={isActive ? 2.25 : 1.75}
+                fill={isActive ? 'currentColor' : 'none'}
+                fillOpacity={isActive ? 0.22 : 0}
+              />
               {label}
             </button>
           </li>
