@@ -54,7 +54,8 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
   const queue = useMemo(() => session.ids.filter((id) => verses.some((v) => v.id === id)), [session.ids, verses]);
   const currentVerse: Verse | undefined =
     deck === 'review' ? verses.find((v) => v.id === queue[pos]) : verses[currentIndex] || verses[0];
-  const cardKey = deck === 'review' ? `r${pos}` : `a${currentIndex}`;
+  // Includes the verse id: skipping keeps the same position with a different card.
+  const cardKey = deck === 'review' ? `r${pos}:${currentVerse?.id}` : `a${currentIndex}`;
 
   const startReview = () => {
     setSession(buildReviewQueue(verses, progressMap, dailyNew));
@@ -110,6 +111,30 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
   const goTo = (index: number) => {
     setIsFlipped(false);
     setCurrentIndex(index);
+  };
+
+  // Review: ‹ goes back a card; › skips this one to the end of today's session
+  // without rating it. All cards: plain previous / next.
+  const goPrev = () => {
+    if (deck === 'review') {
+      setIsFlipped(false);
+      setPos((p) => Math.max(0, p - 1));
+    } else {
+      goTo((currentIndex - 1 + verses.length) % verses.length);
+    }
+  };
+  const goNext = () => {
+    if (deck === 'review') {
+      setIsFlipped(false);
+      setSession((q) => {
+        const ids = [...queue];
+        const [skipped] = ids.splice(pos, 1);
+        ids.push(skipped);
+        return { ...q, ids };
+      });
+    } else {
+      goTo((currentIndex + 1) % verses.length);
+    }
   };
 
   const handleRate = (rating: Rating, xp: number) => {
@@ -233,7 +258,8 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
       ) : (
         <>
       {/* Flip card */}
-      <div className="perspective-1000 h-[22rem] w-full sm:h-96">
+      {/* Shrinks on short screens (small iPhones, Safari toolbars) so the controls stay in view. */}
+      <div className="perspective-1000 h-[clamp(16rem,calc(100dvh-19rem),22rem)] w-full sm:h-96">
         <div
           className={`transform-style-preserve-3d relative h-full w-full transition-transform duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] motion-reduce:transition-none ${
             isFlipped ? 'rotate-y-180' : ''
@@ -388,15 +414,12 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
             {result ? 'Suggested from your recitation. ' : ''}Your answer sets when you’ll see this verse again.
           </p>
         </div>
-      ) : deck === 'review' ? (
-        <button type="button" onClick={handleFlip} className="btn btn-primary w-full">
-          Flip card
-        </button>
       ) : (
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => goTo((currentIndex - 1 + verses.length) % verses.length)}
+            onClick={goPrev}
+            disabled={deck === 'review' && pos === 0}
             className="btn btn-secondary w-14 px-0"
             aria-label="Previous card"
           >
@@ -407,9 +430,11 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
           </button>
           <button
             type="button"
-            onClick={() => goTo((currentIndex + 1) % verses.length)}
+            onClick={goNext}
+            disabled={deck === 'review' && remaining <= 1}
             className="btn btn-secondary w-14 px-0"
-            aria-label="Next card"
+            aria-label={deck === 'review' ? 'Skip for now' : 'Next card'}
+            title={deck === 'review' ? 'Skip for now' : 'Next card'}
           >
             <ChevronRight className="h-6 w-6" strokeWidth={2.5} />
           </button>
