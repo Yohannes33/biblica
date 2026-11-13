@@ -9,7 +9,6 @@ interface StatsViewProps {
 }
 
 export const StatsView: React.FC<StatsViewProps> = ({ stats, verses, progressMap }) => {
-  // Compute mastered count
   let masteredCount = 0;
   let learningCount = 0;
 
@@ -37,29 +36,29 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats, verses, progressMap
 
   const badges = [
     {
-      title: 'First Step',
-      desc: 'Memorized your first verse',
+      title: 'First Word',
+      desc: 'Memorized your first scripture verse',
       unlocked: stats.xp >= 10,
       icon: Sparkles,
       color: 'from-blue-500 to-indigo-500',
     },
     {
       title: 'Daily Devotion',
-      desc: 'Active 3 days streak',
+      desc: 'Maintained a 3-day continuous practice streak',
       unlocked: stats.streakDays >= 3,
       icon: Flame,
-      color: 'from-amber-500 to-orange-500',
+      color: 'from-amber-400 to-amber-600',
     },
     {
-      title: 'Trivia Master',
-      desc: 'Earned 100+ XP in Trivia',
+      title: 'Scripture Scholar',
+      desc: 'Earned 100+ XP in Bible trivia quizzes',
       unlocked: stats.xp >= 100,
       icon: Trophy,
-      color: 'from-emerald-500 to-teal-500',
+      color: 'from-emerald-400 to-teal-500',
     },
     {
-      title: 'Word Weaver',
-      desc: 'Completed Cloze Stage 4',
+      title: '100% Mastery',
+      desc: 'Completed Level 4 full recitation cloze',
       unlocked: stats.level >= 3,
       icon: Award,
       color: 'from-purple-500 to-pink-500',
@@ -67,37 +66,38 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats, verses, progressMap
   ];
 
   return (
-    <div className="w-full max-w-2xl mx-auto flex flex-col gap-6 p-4 sm:p-6 pb-24">
-      {/* Level Hero Card */}
-      <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 p-6 sm:p-8 rounded-3xl border border-indigo-500/30 shadow-2xl relative overflow-hidden">
-        <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-indigo-600 to-amber-400 p-0.5 shadow-xl shadow-indigo-600/30 flex items-center justify-center">
-            <div className="w-full h-full bg-slate-950 rounded-2xl flex flex-col items-center justify-center">
-              <span className="text-xs uppercase font-extrabold text-amber-300">Level</span>
-              <span className="text-3xl font-black text-white">{stats.level}</span>
+    <div className="w-full max-w-2xl mx-auto flex flex-col gap-6 p-4 sm:p-6 pb-28">
+      {/* Apple Activity / Level Hero Card */}
+      <div className="apple-card p-7 sm:p-9 rounded-3xl relative overflow-hidden border border-white/[0.1]">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
+          {/* Circular Badge Ring */}
+          <div className="w-22 h-22 rounded-3xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-amber-400 p-0.5 shadow-xl shadow-blue-600/20 flex items-center justify-center shrink-0">
+            <div className="w-full h-full bg-[#0a0d14] rounded-3xl flex flex-col items-center justify-center">
+              <span className="text-[10px] uppercase font-bold text-amber-400">Level</span>
+              <span className="text-3xl font-extrabold text-white tabular-nums">{stats.level}</span>
             </div>
           </div>
 
-          <div className="flex-1">
-            <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">
-              Your Memory Journey
+          <div className="flex-1 w-full">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-blue-400">
+              Personal Scripture Journey
             </span>
-            <h2 className="text-2xl font-black text-white mt-0.5">
+            <h2 className="text-2xl font-bold text-white tracking-tight mt-0.5">
               {getLevelTitle(stats.level)}
             </h2>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-xs text-slate-400 mt-1 tabular-nums">
               {stats.xp} Total XP &bull; {stats.streakDays} Day Continuous Streak
             </p>
 
             {/* Level progress bar */}
-            <div className="mt-4">
-              <div className="flex justify-between text-xs text-slate-400 mb-1.5 font-medium">
+            <div className="mt-5">
+              <div className="flex justify-between text-xs text-slate-400 mb-1.5 font-medium tabular-nums">
                 <span>Progress to Level {stats.level + 1}</span>
                 <span>{progressPercent}%</span>
               </div>
-              <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+              <div className="w-full bg-white/[0.08] h-2.5 rounded-full overflow-hidden">
                 <div
-                  className="bg-gradient-to-r from-indigo-500 via-indigo-400 to-amber-400 h-full rounded-full transition-all duration-500"
+                  className="bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-400 h-full rounded-full transition-all duration-500"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
@@ -106,38 +106,38 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats, verses, progressMap
         </div>
       </div>
 
-      {/* Grid of 4 Key Metrics */}
+      {/* 4 Apple-style Metric Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-slate-900/70 p-4 rounded-2xl border border-slate-800 flex flex-col items-center text-center">
-          <Flame className="w-6 h-6 text-amber-400 fill-amber-400 mb-1" />
-          <span className="text-2xl font-black text-white">{stats.streakDays}</span>
+        <div className="apple-card p-4 rounded-2xl flex flex-col items-center text-center">
+          <Flame className="w-5 h-5 text-amber-400 fill-amber-400 mb-1" />
+          <span className="text-2xl font-bold text-white tabular-nums">{stats.streakDays}</span>
           <span className="text-xs text-slate-400">Day Streak</span>
         </div>
 
-        <div className="bg-slate-900/70 p-4 rounded-2xl border border-slate-800 flex flex-col items-center text-center">
-          <CheckCircle2 className="w-6 h-6 text-emerald-400 mb-1" />
-          <span className="text-2xl font-black text-white">{masteredCount}</span>
-          <span className="text-xs text-slate-400">Mastered Verses</span>
+        <div className="apple-card p-4 rounded-2xl flex flex-col items-center text-center">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 mb-1" />
+          <span className="text-2xl font-bold text-white tabular-nums">{masteredCount}</span>
+          <span className="text-xs text-slate-400">Mastered</span>
         </div>
 
-        <div className="bg-slate-900/70 p-4 rounded-2xl border border-slate-800 flex flex-col items-center text-center">
-          <BookmarkCheck className="w-6 h-6 text-indigo-400 mb-1" />
-          <span className="text-2xl font-black text-white">{learningCount}</span>
-          <span className="text-xs text-slate-400">In Progress</span>
+        <div className="apple-card p-4 rounded-2xl flex flex-col items-center text-center">
+          <BookmarkCheck className="w-5 h-5 text-blue-400 mb-1" />
+          <span className="text-2xl font-bold text-white tabular-nums">{learningCount}</span>
+          <span className="text-xs text-slate-400">Learning</span>
         </div>
 
-        <div className="bg-slate-900/70 p-4 rounded-2xl border border-slate-800 flex flex-col items-center text-center">
-          <Zap className="w-6 h-6 text-purple-400 mb-1" />
-          <span className="text-2xl font-black text-white">{verses.length}</span>
-          <span className="text-xs text-slate-400">Total in Deck</span>
+        <div className="apple-card p-4 rounded-2xl flex flex-col items-center text-center">
+          <Zap className="w-5 h-5 text-amber-400 mb-1" />
+          <span className="text-2xl font-bold text-white tabular-nums">{verses.length}</span>
+          <span className="text-xs text-slate-400">In Deck</span>
         </div>
       </div>
 
-      {/* Badges & Achievements */}
+      {/* Badges Section */}
       <div className="flex flex-col gap-3">
-        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-          <Trophy className="w-5 h-5 text-amber-400" />
-          <span>Achievements</span>
+        <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+          <Trophy className="w-4 h-4 text-amber-400" />
+          <span>Milestones & Badges</span>
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -148,25 +148,21 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats, verses, progressMap
                 key={b.title}
                 className={`p-4 rounded-2xl border flex items-center gap-3.5 transition-all ${
                   b.unlocked
-                    ? 'bg-slate-900/90 border-slate-800 shadow-md'
-                    : 'bg-slate-950/40 border-slate-900 opacity-40'
+                    ? 'apple-card border-white/[0.08] shadow-md'
+                    : 'bg-black/30 border-white/[0.04] opacity-40'
                 }`}
               >
                 <div
-                  className={`w-12 h-12 rounded-xl bg-gradient-to-tr ${b.color} flex items-center justify-center text-white shrink-0 shadow-lg`}
+                  className={`w-11 h-11 rounded-2xl bg-gradient-to-tr ${b.color} flex items-center justify-center text-white shrink-0 shadow-md`}
                 >
-                  <Icon className="w-6 h-6" />
+                  <Icon className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h4 className="font-bold text-white text-sm">{b.title}</h4>
-                    {b.unlocked ? (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
+                    {b.unlocked && (
+                      <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/25">
                         Unlocked
-                      </span>
-                    ) : (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-500">
-                        Locked
                       </span>
                     )}
                   </div>

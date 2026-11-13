@@ -1,64 +1,82 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#312e81" />
-      <stop offset="50%" stop-color="#1e1b4b" />
-      <stop offset="100%" stop-color="#0f172a" />
+    <!-- Apple-style deep obsidian gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#161822" />
+      <stop offset="50%" stop-color="#0c0d13" />
+      <stop offset="100%" stop-color="#050608" />
     </linearGradient>
-    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#fef08a" />
-      <stop offset="50%" stop-color="#eab308" />
-      <stop offset="100%" stop-color="#ca8a04" />
+
+    <!-- Luxury Champagne Gold gradient -->
+    <linearGradient id="goldLinear" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fffbeb" />
+      <stop offset="25%" stop-color="#fef08a" />
+      <stop offset="60%" stop-color="#eab308" />
+      <stop offset="100%" stop-color="#a16207" />
     </linearGradient>
-    <linearGradient id="glowGrad" x1="50%" y1="0%" x2="50%" y2="100%">
-      <stop offset="0%" stop-color="#6366f1" stop-opacity="0.6" />
-      <stop offset="100%" stop-color="#4338ca" stop-opacity="0" />
+
+    <!-- Radial golden illumination -->
+    <radialGradient id="illumination" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#fef08a" stop-opacity="0.22" />
+      <stop offset="40%" stop-color="#eab308" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Specular highlight for border -->
+    <linearGradient id="specularBorder" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.2" />
+      <stop offset="50%" stop-color="#ffffff" stop-opacity="0.05" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.02" />
     </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.5"/>
+
+    <filter id="appleShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
     </filter>
   </defs>
 
-  <!-- Background with rounded squircles -->
-  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+  <!-- iOS App Icon Squircle Base -->
+  <rect x="0" y="0" width="512" height="512" rx="116" fill="url(#bgGrad)" />
+  <rect x="1" y="1" width="510" height="510" rx="115" fill="none" stroke="url(#specularBorder)" stroke-width="2" />
 
-  <!-- Subtle glow ring -->
-  <circle cx="256" cy="240" r="170" fill="url(#glowGrad)" />
+  <!-- Ambient Light Halo -->
+  <circle cx="256" cy="220" r="190" fill="url(#illumination)" />
 
-  <!-- Open Bible Graphic -->
-  <g filter="url(#shadow)" transform="translate(76, 120)">
-    <!-- Book Left Page -->
-    <path d="M180 200 C 130 190, 40 200, 20 220 L 20 50 C 40 30, 130 20, 180 35 Z" fill="#f8fafc" />
-    <!-- Book Right Page -->
-    <path d="M180 200 C 230 190, 320 200, 340 220 L 340 50 C 320 30, 230 20, 180 35 Z" fill="#f1f5f9" />
-    <!-- Spine -->
-    <path d="M176 34 L 184 34 L 184 202 L 176 202 Z" fill="#94a3b8" />
+  <!-- Iconic Sculpted Bible Geometry -->
+  <g filter="url(#appleShadow)" transform="translate(106, 110)">
+    <!-- Left Open Page -->
+    <path d="M150 190 C 105 180, 30 188, 6 206 C 3 207, 0 205, 0 201 L 0 38 C 0 35, 3 33, 6 32 C 30 18, 105 12, 150 24 Z"
+          fill="#f8fafc" opacity="0.96" />
+    <!-- Left page inner subtle shading -->
+    <path d="M150 190 C 105 180, 30 188, 6 206 L 6 32 C 30 18, 105 12, 150 24 Z"
+          fill="url(#specularBorder)" opacity="0.1" />
 
-    <!-- Verse Lines on Left Page -->
-    <line x1="50" y1="70" x2="150" y2="70" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round" />
-    <line x1="50" y1="95" x2="150" y2="95" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round" />
-    <line x1="50" y1="120" x2="130" y2="120" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round" />
-    <line x1="50" y1="145" x2="150" y2="145" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round" />
+    <!-- Right Open Page -->
+    <path d="M150 190 C 195 180, 270 188, 294 206 C 297 207, 300 205, 300 201 L 300 38 C 300 35, 297 33, 294 32 C 270 18, 195 12, 150 24 Z"
+          fill="#f1f5f9" opacity="0.94" />
 
-    <!-- Verse Lines on Right Page -->
-    <line x1="210" y1="70" x2="310" y2="70" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round" />
-    <line x1="210" y1="95" x2="310" y2="95" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round" />
-    <line x1="210" y1="120" x2="280" y2="120" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round" />
-    <line x1="210" y1="145" x2="310" y2="145" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round" />
+    <!-- Spine Ribbon / Crease -->
+    <path d="M147 22 L 153 22 L 153 192 L 147 192 Z" fill="#cbd5e1" opacity="0.8" />
 
-    <!-- Golden Cross Floating in Center -->
-    <g transform="translate(180, 75)">
-      <circle cx="0" cy="20" r="32" fill="url(#goldGrad)" opacity="0.3" />
-      <!-- Vertical beam -->
-      <rect x="-7" y="-20" width="14" height="68" rx="4" fill="url(#goldGrad)" filter="url(#shadow)" />
-      <!-- Horizontal beam -->
-      <rect x="-24" y="-3" width="48" height="14" rx="4" fill="url(#goldGrad)" />
-      <!-- Radiant sparkles -->
-      <polygon points="0,-32 4,-24 12,-20 4,-16 0,-8 -4,-16 -12,-20 -4,-24" fill="#fef08a" />
+    <!-- Pure Minimalist Golden Cross (Floating above the open scripture) -->
+    <g transform="translate(150, 85)" filter="url(#softGlow)">
+      <!-- Golden Vertical Beam -->
+      <rect x="-6" y="-35" width="12" height="78" rx="4" fill="url(#goldLinear)" />
+      <!-- Golden Horizontal Beam -->
+      <rect x="-26" y="-12" width="52" height="12" rx="4" fill="url(#goldLinear)" />
+      <!-- Radiant Center Diamond -->
+      <polygon points="0,-45 4,-38 10,-35 4,-32 0,-25 -4,-32 -10,-35 -4,-38" fill="#fffbeb" />
     </g>
+
+    <!-- Silk Bookmark Ribbon -->
+    <path d="M150 190 Q 150 230 170 250 L 180 242 L 190 255 Q 170 230 155 190 Z" fill="url(#goldLinear)" opacity="0.85" />
   </g>
 
-  <!-- App Title Accent -->
-  <text x="256" y="420" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="44" fill="#ffffff" letter-spacing="4">BIBLICA</text>
-  <text x="256" y="455" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="18" fill="#a5b4fc" letter-spacing="2">SCRIPTURE MEMORY</text>
+  <!-- Apple Clean Serif Title -->
+  <text x="256" y="424" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'New York', serif" font-weight="600" font-size="34" fill="#f8fafc" letter-spacing="8">BIBLICA</text>
+  <text x="256" y="456" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-weight="500" font-size="13" fill="#94a3b8" letter-spacing="3.5">SCRIPTURE MEMORY</text>
 </svg>

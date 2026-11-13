@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flame, Sparkles, Volume2, VolumeX, Download, BookOpen } from 'lucide-react';
+import { Flame, Sparkles, Volume2, VolumeX, Download } from 'lucide-react';
 import type { UserStats } from '../types/verse';
 
 interface NavbarProps {
@@ -18,42 +18,47 @@ export const Navbar: React.FC<NavbarProps> = ({
   onInstall,
 }) => {
   return (
-    <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-slate-900/80 border-b border-slate-800/80 px-4 py-3 select-none">
-      <div className="max-w-4xl mx-auto flex items-center justify-between gap-2">
+    <header className="sticky top-0 z-40 w-full apple-glass border-b border-white/[0.08] px-4 py-3 select-none">
+      <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
         {/* App Logo & Title */}
         <div 
           onClick={onOpenLibrary}
-          className="flex items-center gap-2.5 cursor-pointer group active:scale-95 transition-transform"
+          className="flex items-center gap-3 cursor-pointer group btn-press"
         >
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-amber-400 flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:shadow-indigo-500/40 transition-all">
-            <BookOpen className="w-5 h-5 text-white" />
+          {/* Sculpted Apple-style Logo */}
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-b from-[#1c1f2b] to-[#0d0f15] border border-white/[0.12] p-1.5 flex items-center justify-center shadow-lg shadow-black/50 group-hover:border-amber-400/40 transition-colors">
+            <img 
+              src="/pwa-192x192.svg" 
+              alt="Biblica Logo" 
+              className="w-full h-full object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]" 
+            />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-lg tracking-wider bg-gradient-to-r from-white via-indigo-200 to-amber-200 bg-clip-text text-transparent">
+              <span className="font-semibold text-lg tracking-[0.08em] text-white">
                 BIBLICA
               </span>
-              <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              <span className="text-[9px] uppercase font-bold px-1.5 py-0.2 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/25">
                 PWA
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium">Scripture Memory</p>
+            <p className="text-[11px] text-slate-400 font-medium tracking-tight">Scripture Memory</p>
           </div>
         </div>
 
         {/* Gamification Stats: Streak & XP */}
-        <div className="flex items-center gap-2 md:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* Daily Streak */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 font-semibold text-xs shadow-inner">
-            <Flame className="w-4 h-4 text-amber-400 animate-pulse fill-amber-400" />
-            <span>{stats.streakDays}d streak</span>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 font-semibold text-xs tabular-nums">
+            <Flame className="w-4 h-4 text-amber-400 fill-amber-400" />
+            <span>{stats.streakDays}d</span>
           </div>
 
           {/* XP & Level Badge */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-semibold text-xs shadow-inner">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-400 fill-indigo-400" />
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 font-semibold text-xs tabular-nums">
+            <Sparkles className="w-3.5 h-3.5 text-blue-400 fill-blue-400" />
             <span>{stats.xp} XP</span>
-            <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded bg-indigo-600 text-white font-bold">
+            <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-md bg-blue-600 text-white font-bold">
               Lv.{stats.level}
             </span>
           </div>
@@ -62,7 +67,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={onToggleSound}
             aria-label="Toggle sound"
-            className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-slate-300 transition-colors"
+            className="p-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] text-slate-300 btn-press"
           >
             {stats.soundEnabled ? (
               <Volume2 className="w-4 h-4 text-emerald-400" />
@@ -71,11 +76,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </button>
 
-          {/* Install PWA Button (if browser event fired) */}
+          {/* Install PWA Button */}
           {canInstall && (
             <button
               onClick={onInstall}
-              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-500 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 hover:brightness-110 active:scale-95 transition-all"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md shadow-blue-600/30 btn-press"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Install</span>
