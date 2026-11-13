@@ -1,10 +1,11 @@
 import { INITIAL_VERSES } from '../data/initialVerses';
-import type { UserStats, Verse, VerseProgress } from '../types/verse';
+import type { UserProfile, UserStats, Verse, VerseProgress } from '../types/verse';
 
 const STORAGE_KEYS = {
   VERSES: 'biblica_verses_v1',
   PROGRESS: 'biblica_progress_v1',
   STATS: 'biblica_stats_v1',
+  PROFILE: 'biblica_profile_v1',
 };
 
 const DEFAULT_STATS: UserStats = {
@@ -19,6 +20,16 @@ const DEFAULT_STATS: UserStats = {
   soundEnabled: true,
   activeVerseId: INITIAL_VERSES[0].id,
   selectedCategory: 'All',
+  theme: 'light',
+};
+
+const DEFAULT_PROFILE: UserProfile = {
+  name: 'Pilgrim',
+  email: 'pilgrim@biblica.app',
+  preferredTranslation: 'KJV',
+  dailyGoalVerses: 3,
+  theme: 'light',
+  joinedDate: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
 };
 
 export const StorageService = {
@@ -107,7 +118,6 @@ export const StorageService = {
       const stored = localStorage.getItem(STORAGE_KEYS.STATS);
       if (stored) {
         const stats = JSON.parse(stored) as UserStats;
-        // Check daily streak
         const today = new Date().toISOString().split('T')[0];
         if (stats.lastActiveDate !== today) {
           const lastDate = new Date(stats.lastActiveDate);
@@ -121,6 +131,9 @@ export const StorageService = {
           }
           stats.lastActiveDate = today;
           StorageService.saveStats(stats);
+        }
+        if (!stats.theme) {
+          stats.theme = 'light';
         }
         return stats;
       }
@@ -139,10 +152,30 @@ export const StorageService = {
     }
   },
 
+  getProfile: (): UserProfile => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.PROFILE);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error('Failed to read profile', e);
+    }
+    StorageService.saveProfile(DEFAULT_PROFILE);
+    return DEFAULT_PROFILE;
+  },
+
+  saveProfile: (profile: UserProfile): void => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
+    } catch (e) {
+      console.error('Failed to save profile', e);
+    }
+  },
+
   addXP: (amount: number): UserStats => {
     const stats = StorageService.getStats();
     stats.xp += amount;
-    // Calculate level: Level 1 = 0, Level 2 = 100, Level 3 = 250, Level 4 = 500, etc.
     const newLevel = Math.max(1, Math.floor(Math.sqrt(stats.xp / 40)) + 1);
     stats.level = newLevel;
     StorageService.saveStats(stats);

@@ -182,14 +182,14 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({
 
   return (
     <div className="w-full max-w-2xl mx-auto flex flex-col gap-5 p-4 sm:p-6 pb-28">
-      {/* Quiz Status Header */}
-      <div className="apple-card p-4 sm:p-5 rounded-3xl flex items-center justify-between">
+      {/* Header */}
+      <div className="theme-card p-4 sm:p-5 rounded-3xl flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="px-3 py-1 rounded-xl bg-blue-500/15 text-blue-300 font-bold text-xs tabular-nums">
+          <div className="px-3 py-1 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold text-xs tabular-nums border border-blue-500/20">
             Q {currentIdx + 1} / {questions.length}
           </div>
-          <div className="flex items-center gap-1 text-amber-300 font-bold text-xs bg-amber-500/10 px-2.5 py-1 rounded-xl border border-amber-500/20 tabular-nums">
-            <Zap className="w-3.5 h-3.5 fill-amber-400" />
+          <div className="flex items-center gap-1 text-amber-500 font-bold text-xs bg-amber-500/10 px-2.5 py-1 rounded-xl border border-amber-500/20 tabular-nums">
+            <Zap className="w-3.5 h-3.5 fill-amber-500" />
             <span>{combo.toFixed(1)}x Combo</span>
           </div>
         </div>
@@ -199,14 +199,14 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({
           <div
             className={`flex items-center gap-1 font-mono font-bold text-sm px-3 py-1 rounded-xl border tabular-nums ${
               timeLeft <= 4
-                ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
-                : 'apple-glass text-slate-300 border-white/[0.08]'
+                ? 'bg-rose-500/20 text-rose-500 border-rose-500/40 animate-pulse'
+                : 'theme-subtle text-slate-600 dark:text-slate-300'
             }`}
           >
             <Timer className="w-4 h-4" />
             <span>{timeLeft}s</span>
           </div>
-          <div className="font-extrabold text-white text-base tabular-nums">
+          <div className="font-extrabold text-base tabular-nums">
             {score} <span className="text-xs font-normal text-slate-400">pts</span>
           </div>
         </div>
@@ -214,50 +214,50 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({
 
       {isGameOver ? (
         /* Results Screen */
-        <div className="apple-card border-blue-400/30 p-8 sm:p-10 rounded-3xl text-center flex flex-col items-center gap-5 shadow-2xl">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-600 flex items-center justify-center text-white shadow-xl shadow-amber-500/25">
+        <div className="theme-card border-blue-500/30 p-8 sm:p-10 rounded-3xl text-center flex flex-col items-center gap-5 shadow-xl">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-600 flex items-center justify-center text-white shadow-lg">
             <Trophy className="w-9 h-9" />
           </div>
           <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
               Round Complete!
             </h2>
-            <p className="text-slate-300 text-sm mt-1">
-              You scored <span className="text-amber-300 font-bold text-lg tabular-nums">{score} pts</span> and gained{' '}
-              <span className="text-blue-300 font-bold text-lg tabular-nums">+{totalXpEarned} XP</span>.
+            <p className="text-slate-500 dark:text-slate-300 text-sm mt-1">
+              You scored <span className="text-amber-500 font-bold text-lg tabular-nums">{score} pts</span> and gained{' '}
+              <span className="text-blue-600 dark:text-blue-400 font-bold text-lg tabular-nums">+{totalXpEarned} XP</span>.
             </p>
           </div>
 
-          <div className="w-full max-w-sm apple-glass p-4 rounded-2xl text-sm text-slate-300 flex justify-around tabular-nums">
+          <div className="w-full max-w-sm theme-subtle p-4 rounded-2xl text-sm flex justify-around tabular-nums">
             <div>
               <span className="text-xs text-slate-400 block">Questions</span>
-              <span className="font-bold text-white">{questions.length}</span>
+              <span className="font-bold">{questions.length}</span>
             </div>
-            <div className="border-l border-white/[0.08]" />
+            <div className="border-l border-inherit" />
             <div>
               <span className="text-xs text-slate-400 block">Combo</span>
-              <span className="font-bold text-amber-400">{combo.toFixed(1)}x</span>
+              <span className="font-bold text-amber-500">{combo.toFixed(1)}x</span>
             </div>
-            <div className="border-l border-white/[0.08]" />
+            <div className="border-l border-inherit" />
             <div>
               <span className="text-xs text-slate-400 block">XP</span>
-              <span className="font-bold text-blue-400">+{totalXpEarned}</span>
+              <span className="font-bold text-blue-600 dark:text-blue-400">+{totalXpEarned}</span>
             </div>
           </div>
 
           <button
             onClick={startQuiz}
-            className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 btn-press"
+            className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-md flex items-center justify-center gap-2 btn-press"
           >
             <RotateCcw className="w-5 h-5" />
             <span>Play Next Round</span>
           </button>
         </div>
       ) : (
-        /* Question Display */
+        /* Active Question */
         <div className="flex flex-col gap-4">
-          <div className="apple-card p-6 sm:p-8 rounded-3xl min-h-[140px] flex flex-col justify-center">
-            <p className="text-base sm:text-xl font-scripture text-slate-100 leading-relaxed whitespace-pre-line text-center">
+          <div className="theme-card p-6 sm:p-8 rounded-3xl min-h-[140px] flex flex-col justify-center">
+            <p className="text-base sm:text-xl font-scripture leading-relaxed whitespace-pre-line text-center">
               {currentQ.prompt}
             </p>
           </div>
@@ -268,7 +268,7 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({
               const isCorrectAnswer = option === currentQ.correctAnswer;
               const hasAnswered = selectedAnswer !== null;
 
-              let btnStyle = 'apple-card hover:bg-white/[0.1] text-slate-200 border-white/[0.08]';
+              let btnStyle = 'theme-card hover:border-blue-500';
 
               if (hasAnswered) {
                 if (isCorrectAnswer) {
@@ -276,7 +276,7 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({
                 } else if (isSelected) {
                   btnStyle = 'bg-rose-600 text-white border-rose-400 font-bold';
                 } else {
-                  btnStyle = 'opacity-40 apple-card text-slate-500';
+                  btnStyle = 'opacity-40 theme-subtle text-slate-400';
                 }
               }
 

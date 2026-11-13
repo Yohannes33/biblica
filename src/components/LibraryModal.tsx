@@ -98,29 +98,29 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-xl animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl max-h-[90vh] apple-card rounded-3xl flex flex-col shadow-2xl overflow-hidden border border-white/[0.12]">
-        {/* Modal Header */}
-        <div className="p-5 border-b border-white/[0.08] flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-2xl max-h-[90vh] theme-card rounded-3xl flex flex-col shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="p-5 border-b border-inherit flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-2xl bg-blue-500/15 text-blue-400 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
               <BookMarked className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">Scripture Library</h2>
-              <p className="text-xs text-slate-400">Select a verse to practice or create your own</p>
+              <h2 className="text-lg sm:text-xl font-bold tracking-tight">Scripture Library</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Select a verse to practice or create your own</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-slate-400 hover:text-white btn-press"
+            className="p-2 rounded-xl theme-subtle text-slate-400 hover:text-slate-600 dark:hover:text-white btn-press"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Search Bar */}
-        <div className="p-4 border-b border-white/[0.08] flex flex-col sm:flex-row gap-3">
+        {/* Search */}
+        <div className="p-4 border-b border-inherit flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
@@ -128,20 +128,20 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
               placeholder="Search by reference, book, or keyword..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-black/40 border border-white/[0.1] rounded-2xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-inherit bg-transparent text-sm focus:outline-none focus:border-blue-500"
             />
           </div>
           <button
             onClick={() => setIsAddingNew(!isAddingNew)}
-            className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs sm:text-sm shadow-md shadow-blue-600/30 btn-press shrink-0"
+            className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs sm:text-sm shadow-md btn-press shrink-0"
           >
             <Plus className="w-4 h-4" />
             <span>{isAddingNew ? 'Cancel' : 'Add Custom Verse'}</span>
           </button>
         </div>
 
-        {/* Categories Bar */}
-        <div className="flex items-center gap-1.5 px-4 py-2.5 overflow-x-auto no-scrollbar border-b border-white/[0.06] bg-black/20">
+        {/* Categories */}
+        <div className="flex items-center gap-1.5 px-4 py-2.5 overflow-x-auto no-scrollbar border-b border-inherit bg-slate-100/50 dark:bg-black/20">
           {CATEGORIES.map((cat) => (
             <button
               key={cat}
@@ -149,7 +149,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
               className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap btn-press ${
                 selectedCategory === cat
                   ? 'bg-blue-600 text-white shadow-sm font-bold'
-                  : 'bg-white/[0.05] text-slate-400 hover:text-slate-200'
+                  : 'theme-subtle text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               {cat}
@@ -157,13 +157,13 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
           ))}
         </div>
 
-        {/* Custom Verse Creator Form */}
+        {/* Custom Verse Form */}
         {isAddingNew && (
           <form
             onSubmit={handleCreateVerse}
-            className="p-5 bg-black/40 border-b border-white/[0.08] flex flex-col gap-3 animate-in slide-in-from-top-3 duration-200"
+            className="p-5 border-b border-inherit flex flex-col gap-3 animate-in slide-in-from-top-3 duration-200 theme-subtle"
           >
-            <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
+            <div className="flex items-center gap-2 text-xs font-bold text-amber-500 uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Add Custom Scripture to Your Deck</span>
             </div>
@@ -174,13 +174,13 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                 value={customRef}
                 onChange={(e) => setCustomRef(e.target.value)}
                 required
-                className="px-3.5 py-2.5 bg-black/60 border border-white/[0.1] rounded-2xl text-sm text-slate-100 focus:border-blue-500 focus:outline-none"
+                className="px-3.5 py-2.5 rounded-2xl border border-inherit bg-white dark:bg-slate-900 text-sm focus:border-blue-500 focus:outline-none"
               />
               <div className="flex gap-2">
                 <select
                   value={customTranslation}
                   onChange={(e) => setCustomTranslation(e.target.value as Translation)}
-                  className="px-3 py-2.5 bg-black/60 border border-white/[0.1] rounded-2xl text-sm text-slate-100 focus:border-blue-500 focus:outline-none"
+                  className="px-3 py-2.5 rounded-2xl border border-inherit bg-white dark:bg-slate-900 text-sm focus:border-blue-500 focus:outline-none"
                 >
                   <option value="KJV">KJV</option>
                   <option value="NIV">NIV</option>
@@ -190,7 +190,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                 <select
                   value={customCategory}
                   onChange={(e) => setCustomCategory(e.target.value as VerseCategory)}
-                  className="flex-1 px-3 py-2.5 bg-black/60 border border-white/[0.1] rounded-2xl text-sm text-slate-100 focus:border-blue-500 focus:outline-none"
+                  className="flex-1 px-3 py-2.5 rounded-2xl border border-inherit bg-white dark:bg-slate-900 text-sm focus:border-blue-500 focus:outline-none"
                 >
                   <option value="Custom">Custom</option>
                   <option value="Essential Classics">Essential Classics</option>
@@ -209,13 +209,13 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
               value={customText}
               onChange={(e) => setCustomText(e.target.value)}
               required
-              className="px-3.5 py-2.5 bg-black/60 border border-white/[0.1] rounded-2xl text-sm text-slate-100 focus:border-blue-500 focus:outline-none font-scripture"
+              className="px-3.5 py-2.5 rounded-2xl border border-inherit bg-white dark:bg-slate-900 text-sm focus:border-blue-500 focus:outline-none font-scripture"
             />
             <div className="flex justify-end gap-2 mt-1">
               <button
                 type="button"
                 onClick={() => setIsAddingNew(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+                className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-white"
               >
                 Cancel
               </button>
@@ -242,13 +242,13 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
               const score = progress ? progress.masteryScore : 0;
 
               let statusLabel = 'New';
-              let statusColor = 'bg-white/[0.06] text-slate-400 border-white/[0.08]';
+              let statusColor = 'theme-subtle text-slate-500';
               if (score >= 80) {
                 statusLabel = 'Mastered';
-                statusColor = 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25';
+                statusColor = 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20';
               } else if (score >= 30) {
                 statusLabel = 'Learning';
-                statusColor = 'bg-blue-500/15 text-blue-300 border-blue-500/25';
+                statusColor = 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20';
               }
 
               return (
@@ -260,13 +260,13 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                   }}
                   className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer flex flex-col gap-2 btn-press ${
                     isCurrent
-                      ? 'bg-blue-600/15 border-blue-400/50 shadow-lg'
-                      : 'apple-card hover:bg-white/[0.06]'
+                      ? 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-500 shadow-md'
+                      : 'theme-card hover:border-blue-400'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-white text-base flex items-center gap-2">
+                      <h4 className="font-bold text-base flex items-center gap-2">
                         {verse.reference}
                         {isCurrent && (
                           <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-blue-600 text-white font-bold">
@@ -291,7 +291,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                             e.stopPropagation();
                             onDeleteCustomVerse(verse.id);
                           }}
-                          className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                          className="p-1 rounded text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
                           title="Delete custom verse"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -300,12 +300,12 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                     </div>
                   </div>
 
-                  <p className="text-sm text-slate-300 font-scripture line-clamp-2 italic leading-relaxed">
+                  <p className="text-sm font-scripture line-clamp-2 italic leading-relaxed text-slate-700 dark:text-slate-300">
                     "{verse.text}"
                   </p>
 
                   <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
-                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/[0.05] text-slate-400 border border-white/[0.06]">
+                    <span className="text-[11px] px-2 py-0.5 rounded-full theme-subtle">
                       {verse.category}
                     </span>
                   </div>

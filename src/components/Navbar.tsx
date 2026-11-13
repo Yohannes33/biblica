@@ -1,92 +1,103 @@
 import React from 'react';
-import { Flame, Sparkles, Volume2, VolumeX, Download } from 'lucide-react';
-import type { UserStats } from '../types/verse';
+import { Flame, Sparkles, Volume2, VolumeX, Sun, Moon, User } from 'lucide-react';
+import type { UserStats, UserProfile } from '../types/verse';
 
 interface NavbarProps {
   stats: UserStats;
+  profile: UserProfile;
   onToggleSound: () => void;
   onOpenLibrary: () => void;
-  canInstall: boolean;
-  onInstall: () => void;
+  onOpenAccount: () => void;
+  onToggleTheme: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   stats,
+  profile,
   onToggleSound,
   onOpenLibrary,
-  canInstall,
-  onInstall,
+  onOpenAccount,
+  onToggleTheme,
 }) => {
+  const isLight = stats.theme === 'light';
+
   return (
-    <header className="sticky top-0 z-40 w-full bg-[#080c14]/80 backdrop-blur-2xl border-b border-white/[0.07] px-4 py-3 select-none">
+    <header className="sticky top-0 z-40 w-full theme-card border-b px-4 py-3 select-none">
       <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
-        {/* App Logo & Brand Identity */}
+        {/* Clean Logo & Title (No PWA badge) */}
         <div 
           onClick={onOpenLibrary}
-          className="flex items-center gap-3 cursor-pointer group btn-press"
+          className="flex items-center gap-2.5 cursor-pointer group btn-press"
         >
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-amber-400 p-0.5 shadow-md shadow-blue-600/20 group-hover:shadow-blue-500/30 transition-all">
-            <div className="w-full h-full bg-[#0a0f1d] rounded-2xl p-1.5 flex items-center justify-center">
-              <img 
-                src="/pwa-192x192.svg" 
-                alt="Biblica Logo" 
-                className="w-full h-full object-contain filter drop-shadow" 
-              />
-            </div>
+          <div className="w-9 h-9 rounded-xl bg-blue-600 p-0.5 shadow-md flex items-center justify-center">
+            <img 
+              src="/pwa-192x192.svg" 
+              alt="Biblica" 
+              className="w-full h-full object-contain filter drop-shadow-sm" 
+            />
           </div>
           <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold text-lg tracking-wider text-white">
-                BIBLICA
-              </span>
-              <span className="text-[9px] uppercase font-extrabold px-1.5 py-0.2 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                PWA
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 font-medium">Scripture Memory</p>
+            <span className="font-extrabold text-lg tracking-wider text-slate-900 dark:text-white">
+              BIBLICA
+            </span>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+              Scripture Memory
+            </p>
           </div>
         </div>
 
-        {/* Glanceable Gamification Balance & Actions */}
+        {/* Action Controls & Gamification */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Day Streak Tag */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 font-bold text-xs tabular-nums shadow-sm">
-            <Flame className="w-4 h-4 text-amber-400 fill-amber-400" />
-            <span>{stats.streakDays}d streak</span>
+          {/* Streak Chip */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-300 font-bold text-xs tabular-nums shadow-sm">
+            <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+            <span>{stats.streakDays}d</span>
           </div>
 
-          {/* XP Balance Display */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-300 font-bold text-xs tabular-nums shadow-sm">
-            <Sparkles className="w-3.5 h-3.5 text-blue-400 fill-blue-400" />
+          {/* XP Chip */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-300 font-bold text-xs tabular-nums shadow-sm">
+            <Sparkles className="w-3.5 h-3.5 fill-blue-500 text-blue-500" />
             <span>{stats.xp} XP</span>
-            <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-md bg-blue-600 text-white font-extrabold">
-              Lv.{stats.level}
-            </span>
           </div>
+
+          {/* 1-Click Brightness / Theme Toggle */}
+          <button
+            onClick={onToggleTheme}
+            aria-label="Toggle Light and Dark Theme"
+            className="p-2 rounded-xl theme-subtle text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white btn-press"
+            title={isLight ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+          >
+            {isLight ? (
+              <Moon className="w-4 h-4 text-slate-700" />
+            ) : (
+              <Sun className="w-4 h-4 text-amber-400" />
+            )}
+          </button>
 
           {/* Sound Toggle */}
           <button
             onClick={onToggleSound}
             aria-label="Toggle sound"
-            className="p-2 rounded-2xl bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] text-slate-300 btn-press"
+            className="p-2 rounded-xl theme-subtle text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white btn-press"
           >
             {stats.soundEnabled ? (
-              <Volume2 className="w-4 h-4 text-emerald-400" />
+              <Volume2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             ) : (
-              <VolumeX className="w-4 h-4 text-slate-500" />
+              <VolumeX className="w-4 h-4 text-slate-400" />
             )}
           </button>
 
-          {/* Install Button */}
-          {canInstall && (
-            <button
-              onClick={onInstall}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md shadow-blue-600/30 btn-press"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Install</span>
-            </button>
-          )}
+          {/* Account Profile Pill */}
+          <button
+            onClick={onOpenAccount}
+            className="flex items-center gap-1.5 pl-2 pr-2.5 py-1 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-md hover:bg-blue-500 btn-press"
+            title="Open Account"
+          >
+            <div className="w-5 h-5 rounded-lg bg-white/20 flex items-center justify-center text-[10px]">
+              <User className="w-3 h-3 text-white" />
+            </div>
+            <span className="hidden sm:inline">{profile.name}</span>
+          </button>
         </div>
       </div>
     </header>

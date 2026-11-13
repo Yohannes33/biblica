@@ -12,10 +12,10 @@ export type VerseCategory =
 
 export interface Verse {
   id: string;
-  reference: string; // e.g. "John 3:16"
+  reference: string;
   book: string;
   chapter: number;
-  verseNum: string; // "16" or "5-6"
+  verseNum: string;
   text: string;
   category: VerseCategory;
   translation: Translation;
@@ -27,18 +27,28 @@ export type MasteryLevel = 'New' | 'Learning' | 'Familiar' | 'Mastered';
 
 export interface VerseProgress {
   verseId: string;
-  masteryScore: number; // 0 to 100
+  masteryScore: number;
   timesPracticed: number;
   correctAnswers: number;
-  lastPracticed: number; // timestamp
-  clozeStage: number; // 1 to 5 (progressive cloze stage)
+  lastPracticed: number;
+  clozeStage: number;
+}
+
+export interface UserProfile {
+  name: string;
+  email: string;
+  avatarUrl?: string;
+  preferredTranslation: Translation;
+  dailyGoalVerses: number;
+  theme: 'light' | 'dark';
+  joinedDate: string;
 }
 
 export interface UserStats {
   xp: number;
   level: number;
   streakDays: number;
-  lastActiveDate: string; // YYYY-MM-DD
+  lastActiveDate: string;
   quizzesCompleted: number;
   cardsReviewed: number;
   clozeCompleted: number;
@@ -46,6 +56,7 @@ export interface UserStats {
   soundEnabled: boolean;
   activeVerseId: string | null;
   selectedCategory: string;
+  theme: 'light' | 'dark';
 }
 
-export type AppTab = 'learn' | 'flashcards' | 'cloze' | 'scramble' | 'trivia' | 'library' | 'stats';
+export type AppTab = 'cloze' | 'flashcards' | 'scramble' | 'trivia' | 'library' | 'stats' | 'account';
