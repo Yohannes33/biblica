@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Sun, Moon, Cloud, CloudCheck, RefreshCw, LogOut, LogIn, Download, Volume2, VolumeX } from 'lucide-react';
+import { Sun, Moon, Cloud, CloudCheck, RefreshCw, LogOut, LogIn, Download, Volume2, VolumeX, Shuffle } from 'lucide-react';
 import type { UserProfile, UserStats, Verse, VerseProgress, Translation } from '../types/verse';
 import { SupabaseService } from '../lib/supabase';
 import { Sheet } from './ui/Sheet';
+import { Avatar } from './ui/Avatar';
+import { newAvatarSeed } from '../utils/avatar';
+import { getLevelTitle } from '../utils/level';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -151,12 +154,30 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   };
 
   return (
-    <Sheet open={isOpen} onClose={onClose} title="Settings">
+    <Sheet open={isOpen} onClose={onClose} title="Profile & settings">
       {statusMessage && (
         <p role="status" className="animate-rise mb-4 rounded-2xl bg-brand-soft px-4 py-3 font-semibold text-brand-ink">
           {statusMessage}
         </p>
       )}
+
+      <section className="mb-6 flex items-center gap-4" aria-label="Your profile">
+        <Avatar seed={profile.avatarSeed || 'biblica'} size={84} className="ring-4 ring-[var(--surface)]" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-display text-xl font-extrabold">{profile.name}</p>
+          <p className="truncate text-sm text-ink-3">
+            Level {stats.level} · {getLevelTitle(stats.level)}
+          </p>
+          <button
+            type="button"
+            onClick={() => onUpdateProfile({ ...profile, avatarSeed: newAvatarSeed() })}
+            className="btn btn-sm btn-secondary mt-2"
+          >
+            <Shuffle className="h-[18px] w-[18px]" strokeWidth={2.25} />
+            New look
+          </button>
+        </div>
+      </section>
 
       <Section title="Your name">
         <form onSubmit={handleSaveProfile} className="flex gap-2">
@@ -351,6 +372,17 @@ export const AccountModal: React.FC<AccountModalProps> = ({
           Download backup
         </button>
       </Section>
+      <p className="px-1 text-xs leading-relaxed text-ink-3">
+        Avatars:{' '}
+        <a className="underline" href="https://www.figma.com/community/file/1184595184137881796" target="_blank" rel="noreferrer">
+          Adventurer Neutral
+        </a>{' '}
+        by Lisa Wischofsky,{' '}
+        <a className="underline" href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">
+          CC BY 4.0
+        </a>
+        , via DiceBear.
+      </p>
     </Sheet>
   );
 };

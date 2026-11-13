@@ -38,6 +38,7 @@ export interface UserProfile {
   name: string;
   email: string;
   avatarUrl?: string;
+  avatarSeed?: string; // seeds the generated DiceBear avatar
   preferredTranslation: Translation;
   dailyGoalVerses: number;
   theme: 'light' | 'dark';
