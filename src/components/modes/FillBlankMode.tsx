@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Volume2, RotateCcw, ArrowRight, Check, Eye, EyeOff, Award, Square } from 'lucide-react';
+import { Volume2, RotateCcw, ArrowRight, Check, Award, Square } from 'lucide-react';
 import type { Verse, VerseProgress } from '../../types/verse';
 import { playSound } from '../../utils/audio';
 import { fireCelebrationConfetti } from '../../utils/confetti';
@@ -33,7 +33,6 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
   const [filledWords, setFilledWords] = useState<Record<number, string>>({});
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const [wrongWord, setWrongWord] = useState<string | null>(null);
-  const [showFirstLetterCues, setShowFirstLetterCues] = useState<boolean>(true);
   const speech = useSpeech();
   const completeRef = useRevealOnShow<HTMLElement>(isCompleted);
 
@@ -156,18 +155,6 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
             {filledCount}/{blankIndices.length}
           </span>
           <div className="flex items-center gap-1.5">
-            {level === 4 && (
-              <button
-                type="button"
-                onClick={() => setShowFirstLetterCues(!showFirstLetterCues)}
-                className="icon-btn"
-                aria-pressed={showFirstLetterCues}
-                aria-label="First-letter hints"
-                title="First-letter hints"
-              >
-                {showFirstLetterCues ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
-              </button>
-            )}
             {speech.supported && (
               <button
                 type="button"
@@ -207,7 +194,6 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
               );
             }
 
-            const cue = level === 4 && showFirstLetterCues ? token.cleanWord[0] : '';
             return (
               <React.Fragment key={token.index}>
                 <span
@@ -218,7 +204,7 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
                   }`}
                 >
                   <span className="sr-only">{isCurrent ? 'current blank' : 'blank'}</span>
-                  <span aria-hidden={!cue}>{cue || '\u00a0'}</span>
+                  <span aria-hidden="true">{'\u00a0'}</span>
                 </span>
                 {token.punctuation}
                 {sep}
