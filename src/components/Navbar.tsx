@@ -1,10 +1,11 @@
 import React from 'react';
-import { Flame, Sparkles, Volume2, VolumeX, Sun, Moon, User } from 'lucide-react';
+import { Flame, Sparkles, Volume2, VolumeX, Sun, Moon, User, LogIn } from 'lucide-react';
 import type { UserStats, UserProfile } from '../types/verse';
 
 interface NavbarProps {
   stats: UserStats;
   profile: UserProfile;
+  currentUser?: any;
   onToggleSound: () => void;
   onOpenLibrary: () => void;
   onOpenAccount: () => void;
@@ -14,6 +15,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   stats,
   profile,
+  currentUser,
   onToggleSound,
   onOpenLibrary,
   onOpenAccount,
@@ -87,17 +89,32 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </button>
 
-          {/* Account Profile Pill */}
-          <button
-            onClick={onOpenAccount}
-            className="flex items-center gap-1.5 pl-2 pr-2.5 py-1 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-md hover:bg-blue-500 btn-press"
-            title="Open Account"
-          >
-            <div className="w-5 h-5 rounded-lg bg-white/20 flex items-center justify-center text-[10px]">
-              <User className="w-3 h-3 text-white" />
-            </div>
-            <span className="hidden sm:inline">{profile.name}</span>
-          </button>
+          {/* Account Profile Pill or Sign In Button */}
+          {currentUser ? (
+            <button
+              onClick={onOpenAccount}
+              className="flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-md hover:bg-blue-500 btn-press"
+              title="Open Account"
+            >
+              {profile.avatarUrl ? (
+                <img src={profile.avatarUrl} alt="" className="w-5 h-5 rounded-lg object-cover" />
+              ) : (
+                <div className="w-5 h-5 rounded-lg bg-white/20 flex items-center justify-center text-[10px]">
+                  <User className="w-3 h-3 text-white" />
+                </div>
+              )}
+              <span className="hidden sm:inline">{profile.name}</span>
+            </button>
+          ) : (
+            <button
+              onClick={onOpenAccount}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md btn-press"
+              title="Sign in with Google or Email"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In</span>
+            </button>
+          )}
         </div>
       </div>
     </header>
