@@ -161,15 +161,15 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({
                   isActive
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-bold'
                     : isPassed
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                    : 'theme-subtle text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 font-bold'
+                    : 'theme-subtle text-slate-800 dark:text-slate-200 font-bold hover:bg-slate-200 dark:hover:bg-white/[0.08]'
                 }`}
               >
                 <div className="flex items-center gap-1">
                   {isPassed && <CheckCircle2 className="w-3 h-3 text-emerald-500" />}
-                  <span className="text-xs font-bold">{st.label}</span>
+                  <span className="text-xs">{st.label}</span>
                 </div>
-                <span className={`text-[9px] mt-0.5 font-medium ${isActive ? 'text-blue-100' : 'text-slate-400'}`}>
+                <span className={`text-[10px] mt-0.5 font-medium ${isActive ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
                   {st.sub}
                 </span>
               </button>
@@ -230,7 +230,7 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({
 
       {/* Main Scripture Memorization Canvas */}
       <div className="theme-card p-6 sm:p-8 rounded-3xl min-h-[220px] flex flex-col justify-between">
-        <div className="text-xl sm:text-2xl leading-[1.8] font-scripture text-slate-800 dark:text-slate-100 flex flex-wrap items-baseline gap-x-2 gap-y-3">
+        <div className="text-xl sm:text-2xl leading-[1.8] font-scripture text-slate-900 dark:text-slate-100 flex flex-wrap items-baseline gap-x-2 gap-y-3 font-medium">
           {analyzedTokens.map((token, idx) => {
             const isBlank = blankIndices.includes(idx);
             const isCurrent = idx === activeTokenIndex;
@@ -238,7 +238,7 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({
 
             if (!isBlank) {
               return (
-                <span key={token.index}>
+                <span key={token.index} className="text-slate-900 dark:text-slate-100">
                   {token.fullToken}
                 </span>
               );
@@ -248,7 +248,7 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({
               return (
                 <span
                   key={token.index}
-                  className="inline-flex items-center font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-xl border border-emerald-500/20 shadow-sm"
+                  className="inline-flex items-center font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/15 px-2.5 py-0.5 rounded-xl border border-emerald-500/30 shadow-sm"
                 >
                   {filledWords[idx]}
                   {token.punctuation}
@@ -265,7 +265,7 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({
               return (
                 <span
                   key={token.index}
-                  className="inline-flex items-center font-bold px-3 py-0.5 rounded-xl bg-blue-500/20 border-2 border-blue-500 text-blue-600 dark:text-blue-300 shadow-md animate-pulse tracking-wider"
+                  className="inline-flex items-center font-bold px-3 py-0.5 rounded-xl bg-blue-500/20 border-2 border-blue-600 dark:border-blue-500 text-blue-700 dark:text-blue-300 shadow-md animate-pulse tracking-wider"
                 >
                   <span>{cue}</span>
                   {token.punctuation}
@@ -281,7 +281,7 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({
             return (
               <span
                 key={token.index}
-                className="inline-flex items-center px-2 py-0.5 rounded-lg bg-slate-200/60 dark:bg-white/[0.05] border border-inherit text-slate-400 text-sm font-sans"
+                className="inline-flex items-center px-2 py-0.5 rounded-lg bg-slate-200/90 dark:bg-white/[0.08] border border-slate-300 dark:border-white/10 text-slate-600 dark:text-slate-400 text-sm font-sans font-medium"
               >
                 {cue}
                 {token.punctuation}
