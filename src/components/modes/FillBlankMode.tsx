@@ -29,17 +29,14 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
   const [showFirstLetterCues, setShowFirstLetterCues] = useState<boolean>(true);
 
-  // Analyze tokens with smart linguistic & theological difficulty scoring
   const analyzedTokens = useMemo(() => {
     return analyzeVerseTokens(verse.text);
   }, [verse.text]);
 
-  // Determine blank indices based on selected level
   const blankIndices = useMemo(() => {
     return getBlankIndicesForLevel(analyzedTokens, level);
   }, [analyzedTokens, level]);
 
-  // Reset state on verse or level change
   useEffect(() => {
     setCurrentBlankIdx(0);
     setFilledWords({});
@@ -47,7 +44,6 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({
     setWrongWord(null);
   }, [verse.id, level]);
 
-  // Text-to-speech
   const handleSpeak = () => {
     if (!('speechSynthesis' in window)) return;
     if (isSpeaking) {
@@ -63,24 +59,20 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({
     window.speechSynthesis.speak(utterance);
   };
 
-  // Active blank target
   const activeTokenIndex = blankIndices[currentBlankIdx];
   const targetToken = activeTokenIndex !== undefined ? analyzedTokens[activeTokenIndex] : null;
   const targetWord = targetToken ? targetToken.cleanWord : '';
 
-  // Smart distractors matching difficulty
   const options = useMemo(() => {
     if (!targetWord) return [];
 
     const isTargetStopWord = STOP_WORDS.has(targetWord.toLowerCase());
 
-    // Pool of candidate words from the verse
     const otherWords = analyzedTokens
       .filter((t) => t.cleanWord.toLowerCase() !== targetWord.toLowerCase())
       .filter((t) => isTargetStopWord ? t.isStopWord : !t.isStopWord)
       .map((t) => t.cleanWord);
 
-    // Contextual fallback distractors
     const theologicalDistractors = [
       'everlasting', 'righteousness', 'salvation', 'strengtheneth',
       'understanding', 'supplication', 'commanded', 'courage', 'shepherd',
@@ -88,7 +80,6 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({
     ];
 
     const fillerDistractors = ['that', 'with', 'unto', 'from', 'shall', 'which', 'upon', 'into'];
-
     const chosenPool = isTargetStopWord ? fillerDistractors : theologicalDistractors;
 
     const uniqueSet = new Set<string>();
@@ -137,29 +128,80 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({
     setWrongWord(null);
   };
 
+  const stages = [
+    { lvl: 1, label: 'Keywords', sub: '25% Blanks' },
+    { lvl: 2, label: 'Standard', sub: '50% Blanks' },
+    { lvl: 3, label: 'Advanced', sub: '75% Blanks' },
+    { lvl: 4, label: 'Mastery', sub: '100% Recite' },
+  ];
+
   return (
     <div className="w-full max-w-2xl mx-auto flex flex-col gap-5 p-4 sm:p-6 pb-28">
-      {/* Apple-style Top Header Bar */}
-      <div className="apple-card p-4 sm:p-5 rounded-3xl flex items-center justify-between">
-        <div>
-          <span className="text-[11px] uppercase tracking-widest font-bold text-amber-400/90 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" />
-            {verse.category}
+      {/* TaxMate Style Milestone Pipeline Tracker */}
+      <div className="taxmate-card rounded-3xl p-3 sm:p-4">
+        <div className="flex items-center justify-between mb-3 px-1">
+          <span className="text-[11px] uppercase tracking-wider font-bold text-slate-400">
+            Memorization Milestone
           </span>
-          <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-white flex items-center gap-2 mt-0.5">
-            {verse.reference}
-            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white/10 text-slate-300 border border-white/10">
+          <span className="text-xs font-bold text-blue-400 tabular-nums">
+            Stage {level} of 4
+          </span>
+        </div>
+
+        <div className="grid grid-cols-4 gap-2">
+          {stages.map((st) => {
+            const isActive = level === st.lvl;
+            const isPassed = level > st.lvl;
+
+            return (
+              <button
+                key={st.lvl}
+                onClick={() => setLevel(st.lvl as DifficultyLevel)}
+                className={`py-2 px-1.5 rounded-2xl flex flex-col items-center justify-center transition-all btn-press text-center ${
+                  isActive
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                    : isPassed
+                    ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                    : 'bg-white/[0.04] text-slate-400 hover:text-slate-200 border border-white/[0.05]'
+                }`}
+              >
+                <div className="flex items-center gap-1">
+                  {isPassed && <CheckCircle2 className="w-3 h-3 text-emerald-400" />}
+                  <span className="text-xs font-bold">{st.label}</span>
+                </div>
+                <span className={`text-[9px] mt-0.5 font-medium ${isActive ? 'text-blue-100' : 'text-slate-500'}`}>
+                  {st.sub}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Chunky Verse Header Ledger */}
+      <div className="taxmate-hero rounded-3xl p-5 sm:p-6 flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />
+              {verse.category}
+            </span>
+            <span className="text-xs font-mono text-slate-400">
               {verse.translation}
             </span>
+          </div>
+
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-1.5">
+            {verse.reference}
           </h2>
         </div>
 
-        {/* Action Controls */}
+        {/* Action icons */}
         <div className="flex items-center gap-2">
           {level === 4 && (
             <button
               onClick={() => setShowFirstLetterCues(!showFirstLetterCues)}
-              className="p-2.5 rounded-2xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] text-amber-300 btn-press"
+              className="p-3 rounded-2xl bg-white/[0.07] hover:bg-white/[0.12] border border-white/[0.1] text-amber-300 btn-press"
               title={showFirstLetterCues ? 'Hide First-Letter Cues' : 'Show First-Letter Cues'}
             >
               {showFirstLetterCues ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
@@ -167,67 +209,27 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({
           )}
           <button
             onClick={handleSpeak}
-            className={`p-2.5 rounded-2xl border transition-all btn-press ${
+            className={`p-3 rounded-2xl border transition-all btn-press ${
               isSpeaking
                 ? 'bg-blue-600 text-white border-blue-400 animate-pulse'
-                : 'bg-white/[0.06] hover:bg-white/[0.1] border-white/[0.08] text-slate-200'
+                : 'bg-white/[0.07] hover:bg-white/[0.12] border-white/[0.1] text-slate-200'
             }`}
-            title="Listen to verse"
+            title="Read verse aloud"
           >
             <Volume2 className="w-4 h-4" />
           </button>
           <button
             onClick={handleReset}
-            className="p-2.5 rounded-2xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] text-slate-300 btn-press"
-            title="Restart verse"
+            className="p-3 rounded-2xl bg-white/[0.07] hover:bg-white/[0.12] border border-white/[0.1] text-slate-300 btn-press"
+            title="Restart current stage"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Apple Segmented Control for Difficulty Levels */}
-      <div className="apple-glass p-1 rounded-2xl flex items-center">
-        {[
-          { lvl: 1, title: 'Keywords (25%)', badge: 'Smart' },
-          { lvl: 2, title: 'Intermediate (50%)', badge: '' },
-          { lvl: 3, title: 'Advanced (75%)', badge: '' },
-          { lvl: 4, title: 'Master (100%)', badge: '100%' },
-        ].map((item) => {
-          const isActive = level === item.lvl;
-          return (
-            <button
-              key={item.lvl}
-              onClick={() => setLevel(item.lvl as DifficultyLevel)}
-              className={`flex-1 py-2 px-1 text-xs font-semibold rounded-xl transition-all btn-press text-center flex items-center justify-center gap-1 ${
-                isActive
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-bold'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.03]'
-              }`}
-            >
-              <span className="truncate">{item.title}</span>
-              {item.badge && (
-                <span
-                  className={`text-[9px] px-1 py-0.2 rounded font-extrabold hidden sm:inline ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-amber-400/20 text-amber-300'
-                  }`}
-                >
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Main Scripture Memorization Canvas (Apple Books Editorial Feel) */}
-      <div className="apple-card p-7 sm:p-9 rounded-3xl min-h-[240px] flex flex-col justify-between relative overflow-hidden">
-        {/* Subtle decorative background watermarks */}
-        <div className="absolute right-4 top-4 text-white/[0.02] text-8xl font-serif pointer-events-none select-none">
-          ✝
-        </div>
-
-        {/* Verse text with blanks */}
+      {/* Main Scripture Display Area */}
+      <div className="taxmate-card p-6 sm:p-8 rounded-3xl min-h-[220px] flex flex-col justify-between relative">
         <div className="text-xl sm:text-2xl leading-[1.8] font-scripture text-slate-100 flex flex-wrap items-baseline gap-x-2 gap-y-3 relative z-10">
           {analyzedTokens.map((token, idx) => {
             const isBlank = blankIndices.includes(idx);
@@ -246,7 +248,7 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({
               return (
                 <span
                   key={token.index}
-                  className="inline-flex items-center font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-xl border border-emerald-500/20 shadow-sm"
+                  className="inline-flex items-center font-bold text-emerald-400 bg-emerald-500/15 px-2.5 py-0.5 rounded-xl border border-emerald-500/30 shadow-sm"
                 >
                   {filledWords[idx]}
                   {token.punctuation}
@@ -255,7 +257,6 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({
             }
 
             if (isCurrent) {
-              // Active blank with first-letter cue option
               const cue =
                 level === 4 && showFirstLetterCues
                   ? `${token.cleanWord[0]}${'_'.repeat(Math.max(2, token.cleanWord.length - 1))}`
@@ -264,7 +265,7 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({
               return (
                 <span
                   key={token.index}
-                  className="inline-flex items-center font-bold px-3 py-0.5 rounded-xl bg-blue-500/20 border-2 border-blue-400 text-blue-300 shadow-md shadow-blue-500/20 animate-pulse tracking-wider"
+                  className="inline-flex items-center font-bold px-3 py-0.5 rounded-xl bg-blue-500/25 border-2 border-blue-400 text-blue-200 shadow-lg shadow-blue-500/25 animate-pulse tracking-wider"
                 >
                   <span>{cue}</span>
                   {token.punctuation}
@@ -272,7 +273,6 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({
               );
             }
 
-            // Future blanks
             const cue =
               level === 4 && showFirstLetterCues
                 ? `${token.cleanWord[0]}...`
@@ -290,15 +290,15 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({
           })}
         </div>
 
-        {/* Progress Footer */}
-        <div className="mt-8 pt-4 border-t border-white/[0.06] flex items-center justify-between text-xs text-slate-400 relative z-10">
-          <div className="flex items-center gap-2">
+        {/* Progress bar inside the scripture box */}
+        <div className="mt-8 pt-4 border-t border-white/[0.07] flex items-center justify-between text-xs text-slate-400">
+          <div className="flex items-center gap-1.5">
             <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-            <span className="tabular-nums font-medium">
+            <span className="tabular-nums font-semibold">
               Blank {Math.min(currentBlankIdx + 1, blankIndices.length)} of {blankIndices.length}
             </span>
           </div>
-          <div className="w-32 sm:w-44 bg-white/[0.08] h-2 rounded-full overflow-hidden">
+          <div className="w-36 sm:w-48 bg-white/[0.08] h-2.5 rounded-full overflow-hidden">
             <div
               className="bg-gradient-to-r from-blue-500 to-emerald-400 h-full rounded-full transition-all duration-300"
               style={{
@@ -309,20 +309,20 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({
         </div>
       </div>
 
-      {/* Completion Banner or Tactical Word Bank */}
+      {/* Completion Banner or Word Bank Options */}
       {isCompleted ? (
-        <div className="apple-card border-emerald-500/30 p-7 rounded-3xl text-center flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30">
+        <div className="taxmate-card border-emerald-500/30 p-7 rounded-3xl text-center flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-xl shadow-emerald-500/30">
             <Award className="w-8 h-8" />
           </div>
           <div>
-            <h3 className="text-2xl font-bold text-white tracking-tight">
-              {level === 4 ? '100% Mastery Achieved!' : 'Stage Complete!'}
+            <h3 className="text-2xl font-extrabold text-white tracking-tight">
+              {level === 4 ? '100% Mastery Achieved!' : 'Stage Completed!'}
             </h3>
             <p className="text-slate-300 text-sm mt-1 max-w-md">
               {level === 4
-                ? 'Flawless scripture recitation! You have memorized this entire passage.'
-                : 'Excellent recall on key words without relying on fillers.'}
+                ? 'Flawless recitation! You have permanently committed this verse to memory.'
+                : 'Excellent recall on key difficult words without fillers.'}
             </p>
             <div className="mt-2 text-xs font-bold text-amber-300">
               +{level === 4 ? 60 : level * 15} XP Earned
@@ -340,14 +340,14 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({
               }}
               className="flex-1 sm:flex-initial px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 btn-press"
             >
-              <span>{level < 4 ? 'Advance to Next Level' : 'Practice Again'}</span>
+              <span>{level < 4 ? 'Next Stage' : 'Practice Again'}</span>
               <ChevronRight className="w-4 h-4" />
             </button>
             <button
               onClick={onNextVerse}
               className="flex-1 sm:flex-initial px-6 py-3.5 rounded-2xl bg-white/[0.08] hover:bg-white/[0.12] text-slate-100 font-semibold text-sm border border-white/[0.1] flex items-center justify-center gap-2 btn-press"
             >
-              <span>Next Verse</span>
+              <span>Next Scripture</span>
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             </button>
           </div>
@@ -357,14 +357,14 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({
           <div className="flex items-center justify-between px-1">
             <span className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
               <HelpCircle className="w-3.5 h-3.5 text-blue-400" />
-              {level === 1 ? 'Target key word:' : 'Choose the next word:'}
+              {level === 1 ? 'Target difficult key word:' : 'Tap the next word:'}
             </span>
-            <span className="text-xs text-blue-400 font-medium tabular-nums">
+            <span className="text-xs text-blue-400 font-semibold tabular-nums">
               +{level * 5} XP
             </span>
           </div>
 
-          {/* Tactical Word Bank Choices */}
+          {/* Chunky Tactile Word Bank */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             {options.map((option, i) => {
               const isWrong = wrongWord === option;
@@ -372,10 +372,10 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({
                 <button
                   key={`${option}-${i}`}
                   onClick={() => handleSelectWord(option)}
-                  className={`py-3.5 px-4 rounded-2xl text-base font-semibold transition-all btn-press select-none ${
+                  className={`py-3.5 px-4 rounded-2xl text-base font-bold transition-all btn-press select-none shadow-sm ${
                     isWrong
-                      ? 'bg-rose-500/80 text-white border border-rose-400 animate-shake'
-                      : 'apple-glass hover:bg-white/[0.1] hover:border-blue-400/50 text-slate-100'
+                      ? 'bg-rose-500 text-white border border-rose-400 animate-shake'
+                      : 'taxmate-card hover:bg-white/[0.12] hover:border-blue-400/50 text-slate-100'
                   }`}
                 >
                   {option}
