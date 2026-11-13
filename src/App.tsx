@@ -11,7 +11,9 @@ import { StatsView } from './components/StatsView';
 import { StorageService } from './utils/storage';
 import { SupabaseService } from './lib/supabase';
 import type { AppTab, UserProfile, UserStats, Verse, VerseProgress } from './types/verse';
-import { Bookmark, Shuffle, ChevronRight } from 'lucide-react';
+
+// Matches the top bar (--surface in index.css) so Android's status bar blends into it.
+const THEME_COLOR = { light: '#ffffff', dark: '#151a16' } as const;
 
 export function App() {
   const [verses, setVerses] = useState<Verse[]>([]);
@@ -24,16 +26,13 @@ export function App() {
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  // Apply theme class to <html> element
+  // Apply theme class to <html> and keep the browser chrome colour in step.
   useEffect(() => {
     const currentTheme = stats.theme || 'light';
-    if (currentTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-      document.documentElement.classList.remove('light');
-    } else {
-      document.documentElement.classList.add('light');
-      document.documentElement.classList.remove('dark');
-    }
+    const root = document.documentElement;
+    root.classList.toggle('dark', currentTheme === 'dark');
+    root.classList.toggle('light', currentTheme !== 'dark');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLOR[currentTheme]);
   }, [stats.theme]);
 
   // Initial data load
@@ -97,6 +96,11 @@ export function App() {
     }
   }, []);
 
+  // Each tab is its own screen: start it at the top.
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [currentTab]);
+
   const activeVerse = verses.find((v) => v.id === activeVerseId) || verses[0];
 
   const handleToggleSound = () => {
@@ -117,47 +121,33 @@ export function App() {
 
   const handleEarnXP = (amount: number, deltaCorrect = true) => {
     if (!activeVerse) return;
-    const { stats: newStats, progress } = StorageService.saveProgress(
-      activeVerse.id,
-      deltaCorrect,
-      amount
-    );
+    const { stats: newStats, progress } = StorageService.saveProgress(activeVerse.id, deltaCorrect, amount);
     setStats({ ...newStats });
     setProgressMap((prev) => ({ ...prev, [activeVerse.id]: progress }));
+  };
+
+  const selectVerseId = (id: string) => {
+    setActiveVerseId(id);
+    const updatedStats = { ...stats, activeVerseId: id };
+    setStats(updatedStats);
+    StorageService.saveStats(updatedStats);
   };
 
   const handleNextVerse = () => {
     if (verses.length <= 1) return;
     const currentIndex = verses.findIndex((v) => v.id === activeVerseId);
-    const nextIndex = (currentIndex + 1) % verses.length;
-    const nextVerse = verses[nextIndex];
-    setActiveVerseId(nextVerse.id);
-    const updatedStats = { ...stats, activeVerseId: nextVerse.id };
-    setStats(updatedStats);
-    StorageService.saveStats(updatedStats);
+    selectVerseId(verses[(currentIndex + 1) % verses.length].id);
   };
 
   const handleRandomVerse = () => {
     if (verses.length <= 1) return;
     const otherVerses = verses.filter((v) => v.id !== activeVerseId);
-    const random = otherVerses[Math.floor(Math.random() * otherVerses.length)];
-    setActiveVerseId(random.id);
-    const updatedStats = { ...stats, activeVerseId: random.id };
-    setStats(updatedStats);
-    StorageService.saveStats(updatedStats);
-  };
-
-  const handleSelectVerse = (verse: Verse) => {
-    setActiveVerseId(verse.id);
-    const updatedStats = { ...stats, activeVerseId: verse.id };
-    setStats(updatedStats);
-    StorageService.saveStats(updatedStats);
+    selectVerseId(otherVerses[Math.floor(Math.random() * otherVerses.length)].id);
   };
 
   const handleAddCustomVerse = (newVerse: Omit<Verse, 'id' | 'isCustom'>) => {
     const created = StorageService.addCustomVerse(newVerse);
-    const updatedVerses = StorageService.getVerses();
-    setVerses(updatedVerses);
+    setVerses(StorageService.getVerses());
     setActiveVerseId(created.id);
   };
 
@@ -188,65 +178,37 @@ export function App() {
     try {
       localStorage.setItem('biblica_progress_v1', JSON.stringify(newProgress));
     } catch {
-      // storage
+      // storage unavailable (private mode); in-memory state still updated
     }
   };
 
   if (!activeVerse) {
     return (
-      <div className="min-h-screen theme-canvas flex items-center justify-center font-medium">
-        Loading Biblica...
+      <div className="grid min-h-dvh place-items-center bg-canvas font-display text-lg font-extrabold text-ink-3">
+        Opening Biblica…
       </div>
     );
   }
 
   return (
-    <div className="theme-canvas min-h-screen flex flex-col font-sans selection:bg-blue-600 selection:text-white">
-      {/* Clean Navbar */}
+    <div className="flex min-h-dvh flex-col bg-canvas text-ink">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-xl focus:bg-surface focus:px-4 focus:py-2"
+      >
+        Skip to content
+      </a>
+
       <Navbar
         stats={stats}
-        profile={profile}
-        currentUser={currentUser}
-        onToggleSound={handleToggleSound}
+        verse={activeVerse}
+        title={currentTab === 'account' ? 'Your progress' : undefined}
         onOpenLibrary={() => setIsLibraryOpen(true)}
-        onOpenAccount={() => setIsAccountOpen(true)}
-        onToggleTheme={() => handleToggleTheme()}
+        onShuffle={handleRandomVerse}
+        onOpenProgress={() => setCurrentTab('account')}
       />
 
-      {/* Scripture Switcher Bar */}
-      {currentTab !== 'account' && (
-        <div className="px-4 py-2.5 max-w-2xl mx-auto w-full">
-          <div className="theme-card rounded-2xl px-4 py-2 flex items-center justify-between gap-3 shadow-sm">
-            <button
-              onClick={() => setIsLibraryOpen(true)}
-              className="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-white btn-press"
-            >
-              <div className="w-6 h-6 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                <Bookmark className="w-3.5 h-3.5" />
-              </div>
-              <span className="font-bold tracking-tight text-slate-900 dark:text-white">
-                {activeVerse.reference}
-              </span>
-              <span className="text-[10px] text-slate-400 hidden sm:inline">
-                ({activeVerse.translation})
-              </span>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-            </button>
-
-            <button
-              onClick={handleRandomVerse}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl theme-subtle text-xs font-semibold text-slate-600 dark:text-slate-300 btn-press"
-              title="Shuffle Random Scripture"
-            >
-              <Shuffle className="w-3.5 h-3.5 text-blue-500" />
-              <span className="text-[11px] font-medium hidden sm:inline">Shuffle</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Main View Router */}
-      <main className="flex-1 flex flex-col">
+      <main id="main" className="pb-tabbar flex flex-1 flex-col">
         {currentTab === 'cloze' && (
           <FillBlankMode
             verse={activeVerse}
@@ -262,11 +224,9 @@ export function App() {
             verses={verses}
             soundEnabled={stats.soundEnabled}
             onRate={(verseId, _rating, xp) => {
-              const { stats: newStats, progress } = StorageService.saveProgress(
-                verseId,
-                true,
-                xp
-              );
+              const { stats: newStats, progress } = StorageService.saveProgress(verseId, true, xp);
+              newStats.cardsReviewed = (newStats.cardsReviewed || 0) + 1;
+              StorageService.saveStats(newStats);
               setStats({ ...newStats });
               setProgressMap((prev) => ({ ...prev, [verseId]: progress }));
             }}
@@ -295,55 +255,30 @@ export function App() {
           />
         )}
 
-        {currentTab === 'library' && (
-          <div className="max-w-2xl mx-auto p-4 w-full">
-            <button
-              onClick={() => setIsLibraryOpen(true)}
-              className="w-full py-4 rounded-3xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-base shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 btn-press"
-            >
-              <Bookmark className="w-5 h-5" />
-              <span>Browse All Verses ({verses.length})</span>
-            </button>
-          </div>
-        )}
-
         {currentTab === 'account' && (
-          <div className="flex-1 flex flex-col">
-            <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-4 w-full flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-md">
-                  {profile.name.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">{profile.name}</h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{profile.email}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsAccountOpen(true)}
-                className="px-4 py-2 rounded-xl theme-card border border-inherit text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-white shadow-sm btn-press"
-              >
-                Settings & Sync
-              </button>
-            </div>
-            <StatsView stats={stats} verses={verses} progressMap={progressMap} />
-          </div>
+          <StatsView
+            stats={stats}
+            profile={profile}
+            isSignedIn={!!currentUser}
+            canSignIn={SupabaseService.isConfigured()}
+            verses={verses}
+            progressMap={progressMap}
+            onOpenSettings={() => setIsAccountOpen(true)}
+          />
         )}
       </main>
 
-      {/* Library Modal */}
       <LibraryModal
         isOpen={isLibraryOpen}
         onClose={() => setIsLibraryOpen(false)}
         verses={verses}
         activeVerseId={activeVerseId}
         progressMap={progressMap}
-        onSelectVerse={handleSelectVerse}
+        onSelectVerse={(verse) => selectVerseId(verse.id)}
         onAddVerse={handleAddCustomVerse}
         onDeleteCustomVerse={handleDeleteCustomVerse}
       />
 
-      {/* Account & Supabase Settings Modal */}
       <AccountModal
         isOpen={isAccountOpen}
         onClose={() => setIsAccountOpen(false)}
@@ -353,20 +288,11 @@ export function App() {
         verses={verses}
         onUpdateProfile={handleUpdateProfile}
         onToggleTheme={(t) => handleToggleTheme(t)}
+        onToggleSound={handleToggleSound}
         onDataSynced={handleDataSynced}
       />
 
-      {/* Floating Bottom Nav */}
-      <BottomNav
-        currentTab={currentTab}
-        onSelectTab={(tab) => {
-          if (tab === 'library') {
-            setIsLibraryOpen(true);
-          } else {
-            setCurrentTab(tab);
-          }
-        }}
-      />
+      <BottomNav currentTab={currentTab} onSelectTab={setCurrentTab} />
     </div>
   );
 }

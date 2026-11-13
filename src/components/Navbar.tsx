@@ -1,121 +1,73 @@
 import React from 'react';
-import { Flame, Sparkles, Volume2, VolumeX, Sun, Moon, User, LogIn } from 'lucide-react';
-import type { UserStats, UserProfile } from '../types/verse';
+import { BookOpen, ChevronDown, Flame, Shuffle } from 'lucide-react';
+import type { UserStats, Verse } from '../types/verse';
+import { getLevelProgress } from '../utils/level';
+import { Ring } from './ui/Progress';
 
 interface NavbarProps {
   stats: UserStats;
-  profile: UserProfile;
-  currentUser?: any;
-  onToggleSound: () => void;
+  verse: Verse;
+  title?: string; // replaces the verse picker on screens that aren't about one verse
   onOpenLibrary: () => void;
-  onOpenAccount: () => void;
-  onToggleTheme: () => void;
+  onShuffle: () => void;
+  onOpenProgress: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({
-  stats,
-  profile,
-  currentUser,
-  onToggleSound,
-  onOpenLibrary,
-  onOpenAccount,
-  onToggleTheme,
-}) => {
-  const isLight = stats.theme === 'light';
+export const Navbar: React.FC<NavbarProps> = ({ stats, verse, title, onOpenLibrary, onShuffle, onOpenProgress }) => {
+  const level = getLevelProgress(stats.xp, stats.level);
 
   return (
-    <header className="sticky top-0 z-40 w-full theme-card border-b px-4 py-3 select-none">
-      <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
-        {/* Clean Logo & Title (No PWA badge) */}
-        <div 
-          onClick={onOpenLibrary}
-          className="flex items-center gap-2.5 cursor-pointer group btn-press"
+    <header className="material-bar sticky top-0 z-30 border-b border-line pt-safe">
+      <div className="mx-auto flex h-16 w-full max-w-xl items-center gap-2 px-4">
+        {title ? (
+          <h1 className="min-w-0 flex-1 truncate font-display text-[1.375rem] font-extrabold tracking-tight">{title}</h1>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={onOpenLibrary}
+              className="-ml-1.5 flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl py-1.5 pr-2 pl-1.5 text-left transition-colors hover:bg-surface-2"
+              aria-label={`Current verse ${verse.reference}. Open library`}
+            >
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand text-on-brand">
+                <BookOpen className="h-5 w-5" strokeWidth={2.25} />
+              </span>
+              <span className="min-w-0">
+                <span className="flex items-center gap-1">
+                  <span className="truncate font-display text-[1.0625rem] leading-tight font-extrabold">{verse.reference}</span>
+                  <ChevronDown className="h-4 w-4 shrink-0 text-ink-3" strokeWidth={2.5} />
+                </span>
+                <span className="block truncate text-[0.8125rem] leading-tight text-ink-3">
+                  {verse.translation} · {verse.category}
+                </span>
+              </span>
+            </button>
+            <button type="button" onClick={onShuffle} className="icon-btn" aria-label="Random verse" title="Random verse">
+              <Shuffle className="h-5 w-5" />
+            </button>
+          </>
+        )}
+
+        <span
+          role="img"
+          className="pill h-10 bg-flame-soft px-3 text-[0.9375rem] text-flame-ink"
+          aria-label={`${stats.streakDays} day streak`}
+          title={`${stats.streakDays} day streak`}
         >
-          <div className="w-9 h-9 rounded-xl bg-blue-600 p-0.5 shadow-md flex items-center justify-center">
-            <img 
-              src="/pwa-192x192.svg" 
-              alt="Biblica" 
-              className="w-full h-full object-contain filter drop-shadow-sm" 
-            />
-          </div>
-          <div>
-            <span className="font-extrabold text-lg tracking-wider text-slate-900 dark:text-white">
-              BIBLICA
-            </span>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-              Scripture Memory
-            </p>
-          </div>
-        </div>
+          <Flame className="h-[18px] w-[18px] fill-flame text-flame" aria-hidden="true" />
+          <span aria-hidden="true">{stats.streakDays}</span>
+        </span>
 
-        {/* Action Controls & Gamification */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Streak Chip */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-300 font-bold text-xs tabular-nums shadow-sm">
-            <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-            <span>{stats.streakDays}d</span>
-          </div>
-
-          {/* XP Chip */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-300 font-bold text-xs tabular-nums shadow-sm">
-            <Sparkles className="w-3.5 h-3.5 fill-blue-500 text-blue-500" />
-            <span>{stats.xp} XP</span>
-          </div>
-
-          {/* 1-Click Brightness / Theme Toggle */}
-          <button
-            onClick={onToggleTheme}
-            aria-label="Toggle Light and Dark Theme"
-            className="p-2 rounded-xl theme-subtle text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white btn-press"
-            title={isLight ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-          >
-            {isLight ? (
-              <Moon className="w-4 h-4 text-slate-700" />
-            ) : (
-              <Sun className="w-4 h-4 text-amber-400" />
-            )}
-          </button>
-
-          {/* Sound Toggle */}
-          <button
-            onClick={onToggleSound}
-            aria-label="Toggle sound"
-            className="p-2 rounded-xl theme-subtle text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white btn-press"
-          >
-            {stats.soundEnabled ? (
-              <Volume2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            ) : (
-              <VolumeX className="w-4 h-4 text-slate-400" />
-            )}
-          </button>
-
-          {/* Account Profile Pill or Sign In Button */}
-          {currentUser ? (
-            <button
-              onClick={onOpenAccount}
-              className="flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-md hover:bg-blue-500 btn-press"
-              title="Open Account"
-            >
-              {profile.avatarUrl ? (
-                <img src={profile.avatarUrl} alt="" className="w-5 h-5 rounded-lg object-cover" />
-              ) : (
-                <div className="w-5 h-5 rounded-lg bg-white/20 flex items-center justify-center text-[10px]">
-                  <User className="w-3 h-3 text-white" />
-                </div>
-              )}
-              <span className="hidden sm:inline">{profile.name}</span>
-            </button>
-          ) : (
-            <button
-              onClick={onOpenAccount}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md btn-press"
-              title="Sign in with Google or Email"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Sign In</span>
-            </button>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={onOpenProgress}
+          className="rounded-full transition-transform active:scale-95"
+          aria-label={`Level ${stats.level}, ${stats.xp} XP, ${level.toNext} XP to level ${stats.level + 1}. Open progress`}
+        >
+          <Ring value={level.percent} size={44} stroke={4} tone="gold">
+            <span className="font-display text-[0.9375rem] font-extrabold tabular-nums">{stats.level}</span>
+          </Ring>
+        </button>
       </div>
     </header>
   );

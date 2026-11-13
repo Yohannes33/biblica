@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Timer, Zap, Trophy, RotateCcw, CheckCircle2, XCircle } from 'lucide-react';
+import { Zap, Trophy, RotateCcw, Check, X } from 'lucide-react';
 import type { Verse } from '../../types/verse';
 import { playSound } from '../../utils/audio';
 import { fireCelebrationConfetti } from '../../utils/confetti';
+import { Ring } from '../ui/Progress';
 
 interface TriviaQuizModeProps {
   verses: Verse[];
@@ -12,7 +13,8 @@ interface TriviaQuizModeProps {
 
 interface Question {
   type: 'match-ref' | 'complete-verse';
-  prompt: string;
+  ask: string;
+  quote: string;
   correctAnswer: string;
   options: string[];
   verseReference: string;
@@ -20,12 +22,9 @@ interface Question {
 
 const QUESTION_COUNT = 5;
 const TIME_LIMIT = 15;
+const LETTERS = ['A', 'B', 'C', 'D'];
 
-export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({
-  verses,
-  soundEnabled,
-  onFinishQuiz,
-}) => {
+export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEnabled, onFinishQuiz }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -34,63 +33,55 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({
   const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
   const [isGameOver, setIsGameOver] = useState(false);
   const [totalXpEarned, setTotalXpEarned] = useState(0);
+  const [results, setResults] = useState<boolean[]>([]);
 
   const generateQuestions = useCallback(() => {
     if (verses.length < 4) return [];
     const pool = [...verses].sort(() => Math.random() - 0.5);
     const selectedVerses = pool.slice(0, QUESTION_COUNT);
 
-    const generated: Question[] = selectedVerses.map((target, idx) => {
-      const isRefMatch = idx % 2 === 0;
-
-      if (isRefMatch) {
+    return selectedVerses.map((target, idx): Question => {
+      if (idx % 2 === 0) {
         const otherRefs = verses
           .filter((v) => v.id !== target.id)
           .map((v) => v.reference)
           .sort(() => Math.random() - 0.5)
           .slice(0, 3);
-        const options = [target.reference, ...otherRefs].sort(() => Math.random() - 0.5);
-
         return {
           type: 'match-ref',
-          prompt: `Which scripture reference says:\n"${target.text}"?`,
+          ask: 'Which verse is this?',
+          quote: target.text,
           correctAnswer: target.reference,
-          options,
-          verseReference: target.reference,
-        };
-      } else {
-        const words = target.text.split(' ');
-        const cutPoint = Math.max(3, Math.floor(words.length * 0.6));
-        const leadingPart = words.slice(0, cutPoint).join(' ');
-        const endingPart = words.slice(cutPoint).join(' ');
-
-        const distractors = verses
-          .filter((v) => v.id !== target.id)
-          .map((v) => {
-            const dw = v.text.split(' ');
-            return dw.slice(Math.max(1, Math.floor(dw.length * 0.5))).join(' ');
-          })
-          .sort(() => Math.random() - 0.5)
-          .slice(0, 3);
-
-        const options = [endingPart, ...distractors].sort(() => Math.random() - 0.5);
-
-        return {
-          type: 'complete-verse',
-          prompt: `Complete ${target.reference}:\n"${leadingPart}..."`,
-          correctAnswer: endingPart,
-          options,
+          options: [target.reference, ...otherRefs].sort(() => Math.random() - 0.5),
           verseReference: target.reference,
         };
       }
-    });
 
-    return generated;
+      const words = target.text.split(' ');
+      const cutPoint = Math.max(3, Math.floor(words.length * 0.6));
+      const endingPart = words.slice(cutPoint).join(' ');
+      const distractors = verses
+        .filter((v) => v.id !== target.id)
+        .map((v) => {
+          const dw = v.text.split(' ');
+          return dw.slice(Math.max(1, Math.floor(dw.length * 0.5))).join(' ');
+        })
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 3);
+
+      return {
+        type: 'complete-verse',
+        ask: `Finish ${target.reference}`,
+        quote: `${words.slice(0, cutPoint).join(' ')}…`,
+        correctAnswer: endingPart,
+        options: [endingPart, ...distractors].sort(() => Math.random() - 0.5),
+        verseReference: target.reference,
+      };
+    });
   }, [verses]);
 
   const startQuiz = useCallback(() => {
-    const qList = generateQuestions();
-    setQuestions(qList);
+    setQuestions(generateQuestions());
     setCurrentIdx(0);
     setSelectedAnswer(null);
     setScore(0);
@@ -98,6 +89,7 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({
     setTimeLeft(TIME_LIMIT);
     setIsGameOver(false);
     setTotalXpEarned(0);
+    setResults([]);
   }, [generateQuestions]);
 
   useEffect(() => {
@@ -106,199 +98,205 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({
 
   const currentQ = questions[currentIdx];
 
+  // Totals are passed in explicitly: state set in the same tick as this call
+  // has not been committed yet, so reading `score` here would miss the last answer.
+  const advance = useCallback(
+    (finalScore: number, finalXp: number) => {
+      setTimeout(() => {
+        if (currentIdx + 1 >= questions.length) {
+          setIsGameOver(true);
+          if (finalScore > 200) {
+            playSound.celebrate(soundEnabled);
+            fireCelebrationConfetti();
+          }
+          onFinishQuiz(finalScore, finalXp);
+        } else {
+          setCurrentIdx((prev) => prev + 1);
+          setSelectedAnswer(null);
+          setTimeLeft(TIME_LIMIT);
+        }
+      }, 1300);
+    },
+    [currentIdx, onFinishQuiz, questions.length, soundEnabled]
+  );
+
   const handleTimeOut = useCallback(() => {
     playSound.incorrect(soundEnabled);
     setSelectedAnswer('__TIMEOUT__');
     setCombo(1);
-
-    setTimeout(() => {
-      if (currentIdx + 1 >= questions.length) {
-        setIsGameOver(true);
-        onFinishQuiz(score, totalXpEarned);
-      } else {
-        setCurrentIdx((prev) => prev + 1);
-        setSelectedAnswer(null);
-        setTimeLeft(TIME_LIMIT);
-      }
-    }, 1200);
-  }, [currentIdx, onFinishQuiz, questions.length, score, soundEnabled, totalXpEarned]);
+    setResults((r) => [...r, false]);
+    advance(score, totalXpEarned);
+  }, [advance, score, soundEnabled, totalXpEarned]);
 
   useEffect(() => {
     if (isGameOver || selectedAnswer !== null) return;
-
     if (timeLeft <= 0) {
       handleTimeOut();
       return;
     }
-
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => prev - 1);
-    }, 1000);
-
+    const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
     return () => clearInterval(timer);
   }, [timeLeft, isGameOver, selectedAnswer, handleTimeOut]);
 
   const handleAnswer = (option: string) => {
     if (selectedAnswer !== null || isGameOver) return;
-
     setSelectedAnswer(option);
     const isCorrect = option === currentQ.correctAnswer;
+    let nextScore = score;
+    let nextXp = totalXpEarned;
 
     if (isCorrect) {
       playSound.correct(soundEnabled);
-      const earnedPoints = Math.round(100 * combo);
-      const earnedXp = Math.round(10 * combo);
-      setScore((prev) => prev + earnedPoints);
-      setTotalXpEarned((prev) => prev + earnedXp);
+      nextScore += Math.round(100 * combo);
+      nextXp += Math.round(10 * combo);
+      setScore(nextScore);
+      setTotalXpEarned(nextXp);
       setCombo((prev) => Math.min(3, prev + 0.5));
     } else {
       playSound.incorrect(soundEnabled);
       setCombo(1);
     }
-
-    setTimeout(() => {
-      if (currentIdx + 1 >= questions.length) {
-        setIsGameOver(true);
-        if (score > 200) {
-          playSound.celebrate(soundEnabled);
-          fireCelebrationConfetti();
-        }
-        onFinishQuiz(score, totalXpEarned);
-      } else {
-        setCurrentIdx((prev) => prev + 1);
-        setSelectedAnswer(null);
-        setTimeLeft(TIME_LIMIT);
-      }
-    }, 1300);
+    setResults((r) => [...r, isCorrect]);
+    advance(nextScore, nextXp);
   };
 
-  if (!currentQ && !isGameOver) {
+  if (verses.length < 4) {
     return (
-      <div className="text-center py-20 text-slate-400 font-medium">
-        Loading trivia questions...
+      <div className="mx-auto max-w-xl px-4 pt-10 text-center text-ink-2">
+        Trivia needs at least 4 verses in your library. Add a few more to play.
       </div>
     );
   }
 
-  return (
-    <div className="w-full max-w-2xl mx-auto flex flex-col gap-5 p-4 sm:p-6 pb-28">
-      {/* Header */}
-      <div className="theme-card p-4 sm:p-5 rounded-3xl flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="px-3 py-1 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold text-xs tabular-nums border border-blue-500/20">
-            Q {currentIdx + 1} / {questions.length}
-          </div>
-          <div className="flex items-center gap-1 text-amber-500 font-bold text-xs bg-amber-500/10 px-2.5 py-1 rounded-xl border border-amber-500/20 tabular-nums">
-            <Zap className="w-3.5 h-3.5 fill-amber-500" />
-            <span>{combo.toFixed(1)}x Combo</span>
-          </div>
-        </div>
+  if (!currentQ && !isGameOver) {
+    return <div className="py-20 text-center text-ink-3">Getting questions ready…</div>;
+  }
 
-        {/* Timer display */}
-        <div className="flex items-center gap-3">
-          <div
-            className={`flex items-center gap-1 font-mono font-bold text-sm px-3 py-1 rounded-xl border tabular-nums ${
-              timeLeft <= 4
-                ? 'bg-rose-500/20 text-rose-500 border-rose-500/40 animate-pulse'
-                : 'theme-subtle text-slate-600 dark:text-slate-300'
-            }`}
-          >
-            <Timer className="w-4 h-4" />
-            <span>{timeLeft}s</span>
-          </div>
-          <div className="font-extrabold text-base tabular-nums text-slate-900 dark:text-white">
-            {score} <span className="text-xs font-normal text-slate-400">pts</span>
-          </div>
-        </div>
+  const correctCount = results.filter(Boolean).length;
+  const timeLow = timeLeft <= 4;
+
+  return (
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-4">
+      {/* Status strip */}
+      <div className="flex items-center gap-3">
+        <ol className="flex flex-1 gap-1.5" aria-label={`Question ${Math.min(currentIdx + 1, questions.length)} of ${questions.length}`}>
+          {questions.map((_, i) => {
+            const r = results[i];
+            const cls =
+              r === true ? 'bg-brand' : r === false ? 'bg-danger' : i === currentIdx && !isGameOver ? 'bg-brand/35' : 'bg-surface-3';
+            return <li key={i} className={`h-2.5 flex-1 rounded-full transition-colors ${cls}`} />;
+          })}
+        </ol>
+        <span
+          className={`pill transition-colors ${combo > 1 ? 'bg-gold text-[oklch(0.28_0.06_70)]' : 'bg-surface-2 text-ink-2'}`}
+          aria-label={`Combo ${combo.toFixed(1)} times`}
+        >
+          <Zap className="h-3.5 w-3.5 fill-current" aria-hidden="true" />×{combo.toFixed(1)}
+        </span>
       </div>
 
       {isGameOver ? (
-        /* Results Screen */
-        <div className="theme-card border-blue-500/30 p-8 sm:p-10 rounded-3xl text-center flex flex-col items-center gap-5 shadow-xl">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-600 flex items-center justify-center text-white shadow-lg">
-            <Trophy className="w-9 h-9" />
-          </div>
+        <section className="card animate-rise flex flex-col items-center gap-5 p-6 text-center sm:p-8" aria-live="polite">
+          <span className="animate-pop grid h-20 w-20 place-items-center rounded-full bg-gold text-[oklch(0.3_0.06_70)] shadow-[0_5px_0_var(--gold-edge)]">
+            <Trophy className="h-10 w-10" strokeWidth={2.25} />
+          </span>
           <div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              Round Complete!
+            <h2 className="font-display text-3xl font-extrabold tracking-tight">
+              {correctCount === questions.length ? 'Perfect round!' : correctCount >= 3 ? 'Great round!' : 'Round complete'}
             </h2>
-            <p className="text-slate-500 dark:text-slate-300 text-sm mt-1">
-              You scored <span className="text-amber-500 font-bold text-lg tabular-nums">{score} pts</span> and gained{' '}
-              <span className="text-blue-600 dark:text-blue-400 font-bold text-lg tabular-nums">+{totalXpEarned} XP</span>.
+            <p className="mt-1 text-ink-2">
+              {correctCount} of {questions.length} correct
             </p>
           </div>
-
-          <div className="w-full max-w-sm theme-subtle p-4 rounded-2xl text-sm flex justify-around tabular-nums">
-            <div>
-              <span className="text-xs text-slate-400 block">Questions</span>
-              <span className="font-bold">{questions.length}</span>
+          <dl className="grid w-full grid-cols-2 gap-3">
+            <div className="rounded-2xl bg-surface-2 p-4">
+              <dt className="text-sm text-ink-3">Score</dt>
+              <dd className="font-display text-3xl font-extrabold tabular-nums">{score}</dd>
             </div>
-            <div className="border-l border-inherit" />
-            <div>
-              <span className="text-xs text-slate-400 block">Combo</span>
-              <span className="font-bold text-amber-500">{combo.toFixed(1)}x</span>
+            <div className="rounded-2xl bg-gold-soft p-4">
+              <dt className="text-sm text-gold-ink">XP earned</dt>
+              <dd className="font-display text-3xl font-extrabold text-gold-ink tabular-nums">+{totalXpEarned}</dd>
             </div>
-            <div className="border-l border-inherit" />
-            <div>
-              <span className="text-xs text-slate-400 block">XP</span>
-              <span className="font-bold text-blue-600 dark:text-blue-400">+{totalXpEarned}</span>
-            </div>
-          </div>
-
-          <button
-            onClick={startQuiz}
-            className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-md flex items-center justify-center gap-2 btn-press"
-          >
-            <RotateCcw className="w-5 h-5" />
-            <span>Play Next Round</span>
+          </dl>
+          <button type="button" onClick={startQuiz} className="btn btn-primary w-full">
+            <RotateCcw className="h-5 w-5" strokeWidth={2.5} />
+            Play another round
           </button>
-        </div>
+        </section>
       ) : (
-        /* Active Question */
-        <div className="flex flex-col gap-4">
-          <div className="theme-card p-6 sm:p-8 rounded-3xl min-h-[140px] flex flex-col justify-center">
-            <p className="text-base sm:text-xl font-scripture leading-relaxed whitespace-pre-line text-center">
-              {currentQ.prompt}
-            </p>
-          </div>
+        <>
+          <article className="card p-5 sm:p-7">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h2 className="font-display text-lg font-extrabold">{currentQ.ask}</h2>
+              <div className="flex items-center gap-3">
+                <span className="font-display text-sm font-extrabold text-ink-3 tabular-nums">{score} pts</span>
+                <Ring value={(timeLeft / TIME_LIMIT) * 100} size={44} stroke={4} tone={timeLow ? 'danger' : 'brand'}>
+                  <span
+                    className={`font-display text-sm font-extrabold tabular-nums ${timeLow ? 'text-danger-ink' : ''}`}
+                    role="timer"
+                    aria-label={`${timeLeft} seconds left`}
+                  >
+                    {timeLeft}
+                  </span>
+                </Ring>
+              </div>
+            </div>
+            <p className="font-scripture text-xl leading-relaxed sm:text-[1.375rem]">“{currentQ.quote}”</p>
+          </article>
 
-          <div className="grid grid-cols-1 gap-3">
+          <div className="flex flex-col gap-3" role="group" aria-label="Answers">
             {currentQ.options.map((option, idx) => {
-              const isSelected = selectedAnswer === option;
-              const isCorrectAnswer = option === currentQ.correctAnswer;
               const hasAnswered = selectedAnswer !== null;
-
-              let btnStyle = 'theme-card hover:border-blue-500';
-
-              if (hasAnswered) {
-                if (isCorrectAnswer) {
-                  btnStyle = 'bg-emerald-600 text-white border-emerald-400 font-bold';
-                } else if (isSelected) {
-                  btnStyle = 'bg-rose-600 text-white border-rose-400 font-bold';
-                } else {
-                  btnStyle = 'opacity-40 theme-subtle text-slate-400';
-                }
-              }
-
+              const isCorrectAnswer = option === currentQ.correctAnswer;
+              const isSelected = selectedAnswer === option;
+              const state = !hasAnswered
+                ? ''
+                : isCorrectAnswer
+                  ? 'tile-correct animate-pop'
+                  : isSelected
+                    ? 'tile-wrong animate-shake'
+                    : 'opacity-45';
               return (
                 <button
                   key={`${option}-${idx}`}
+                  type="button"
                   disabled={hasAnswered}
                   onClick={() => handleAnswer(option)}
-                  className={`p-4 rounded-2xl border text-sm sm:text-base text-left transition-all flex items-center justify-between gap-3 btn-press ${btnStyle}`}
+                  className={`tile flex min-h-14 items-center gap-3 p-3 text-left ${state}`}
                 >
-                  <span className="leading-snug">{option}</span>
-                  {hasAnswered && isCorrectAnswer && (
-                    <CheckCircle2 className="w-5 h-5 text-white shrink-0" />
-                  )}
-                  {hasAnswered && isSelected && !isCorrectAnswer && (
-                    <XCircle className="w-5 h-5 text-white shrink-0" />
-                  )}
+                  <span
+                    className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg font-display text-sm font-extrabold ${
+                      hasAnswered && (isCorrectAnswer || isSelected) ? 'bg-white/25' : 'bg-surface-2 text-ink-2'
+                    }`}
+                    aria-hidden="true"
+                  >
+                    {hasAnswered && isCorrectAnswer ? (
+                      <Check className="h-5 w-5" strokeWidth={3} />
+                    ) : hasAnswered && isSelected ? (
+                      <X className="h-5 w-5" strokeWidth={3} />
+                    ) : (
+                      LETTERS[idx]
+                    )}
+                  </span>
+                  <span
+                    className={
+                      currentQ.type === 'match-ref'
+                        ? 'font-display text-lg font-bold'
+                        : 'font-scripture text-[1.0625rem] leading-snug'
+                    }
+                  >
+                    {option}
+                  </span>
                 </button>
               );
             })}
           </div>
-        </div>
+          {selectedAnswer === '__TIMEOUT__' && (
+            <p className="text-center font-display font-extrabold text-danger-ink" role="status">
+              Time’s up!
+            </p>
+          )}
+        </>
       )}
     </div>
   );

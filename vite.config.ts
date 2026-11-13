@@ -14,9 +14,9 @@ export default defineConfig({
       manifest: {
         name: 'Biblica - Bible Verse Memorization',
         short_name: 'Biblica',
-        description: 'Gamified Bible Verse Memorization, Cloze Puzzles & Flashcard Trivia',
-        theme_color: '#4f46e5',
-        background_color: '#090d16',
+        description: 'Memorize Bible verses with fill-in-the-blank, flashcards, word scrambles and trivia.',
+        theme_color: '#ffffff',
+        background_color: '#f2f6f2',
         display: 'standalone',
         orientation: 'portrait',
         icons: [

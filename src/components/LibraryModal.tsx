@@ -1,14 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  X, 
-  Search, 
-  Plus, 
-  Check, 
-  BookMarked, 
-  Sparkles,
-  Trash2
-} from 'lucide-react';
+import { Search, Plus, Check, Trash2, X } from 'lucide-react';
 import type { Verse, VerseCategory, VerseProgress, Translation } from '../types/verse';
+import { Sheet } from './ui/Sheet';
 
 interface LibraryModalProps {
   isOpen: boolean;
@@ -33,6 +26,12 @@ const CATEGORIES: ('All' | VerseCategory)[] = [
   'Custom',
 ];
 
+function masteryOf(score: number) {
+  if (score >= 80) return { label: 'Mastered', cls: 'bg-brand-soft text-brand-ink' };
+  if (score >= 30) return { label: 'Learning', cls: 'bg-teal-soft text-teal-ink' };
+  return { label: 'New', cls: 'bg-surface-2 text-ink-2' };
+}
+
 export const LibraryModal: React.FC<LibraryModalProps> = ({
   isOpen,
   onClose,
@@ -53,24 +52,17 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   const [customTranslation, setCustomTranslation] = useState<Translation>('KJV');
 
   const filteredVerses = useMemo(() => {
+    const q = searchQuery.toLowerCase();
     return verses.filter((v) => {
       const matchesSearch =
-        v.reference.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        v.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        v.tags?.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
-
+        v.reference.toLowerCase().includes(q) ||
+        v.text.toLowerCase().includes(q) ||
+        v.tags?.some((t) => t.toLowerCase().includes(q));
       const matchesCat =
-        selectedCategory === 'All'
-          ? true
-          : selectedCategory === 'Custom'
-          ? !!v.isCustom
-          : v.category === selectedCategory;
-
+        selectedCategory === 'All' ? true : selectedCategory === 'Custom' ? !!v.isCustom : v.category === selectedCategory;
       return matchesSearch && matchesCat;
     });
   }, [verses, searchQuery, selectedCategory]);
-
-  if (!isOpen) return null;
 
   const handleCreateVerse = (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,223 +90,181 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl max-h-[90vh] theme-card rounded-3xl flex flex-col shadow-2xl overflow-hidden">
-        {/* Header */}
-        <div className="p-5 border-b border-inherit flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-              <BookMarked className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold tracking-tight">Scripture Library</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Select a verse to practice or create your own</p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl theme-subtle text-slate-400 hover:text-slate-600 dark:hover:text-white btn-press"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Search */}
-        <div className="p-4 border-b border-inherit flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+    <Sheet
+      open={isOpen}
+      onClose={onClose}
+      title="Library"
+      subtitle={`${verses.length} verses`}
+      headerAction={
+        <button
+          type="button"
+          onClick={() => setIsAddingNew(!isAddingNew)}
+          className={`btn btn-sm ${isAddingNew ? 'btn-secondary' : 'btn-primary'}`}
+          aria-expanded={isAddingNew}
+        >
+          {isAddingNew ? <X className="h-[18px] w-[18px]" strokeWidth={2.5} /> : <Plus className="h-[18px] w-[18px]" strokeWidth={2.5} />}
+          {isAddingNew ? 'Cancel' : 'Add'}
+        </button>
+      }
+    >
+      {isAddingNew && (
+        <form onSubmit={handleCreateVerse} className="card animate-rise mb-5 flex flex-col gap-3 p-4" aria-label="Add your own verse">
+          <h3 className="font-display text-lg font-extrabold">Add your own verse</h3>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-semibold text-ink-2">Reference</span>
             <input
               type="text"
-              placeholder="Search by reference, book, or keyword..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-inherit bg-transparent text-sm focus:outline-none focus:border-blue-500"
+              placeholder="e.g. Romans 12:2"
+              value={customRef}
+              onChange={(e) => setCustomRef(e.target.value)}
+              required
+              className="field"
             />
+          </label>
+          <div className="grid grid-cols-[7rem_1fr] gap-3">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-sm font-semibold text-ink-2">Translation</span>
+              <select value={customTranslation} onChange={(e) => setCustomTranslation(e.target.value as Translation)} className="field">
+                <option value="KJV">KJV</option>
+                <option value="NIV">NIV</option>
+                <option value="ESV">ESV</option>
+                <option value="NLT">NLT</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-sm font-semibold text-ink-2">Category</span>
+              <select value={customCategory} onChange={(e) => setCustomCategory(e.target.value as VerseCategory)} className="field">
+                {CATEGORIES.filter((c) => c !== 'All').map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
-          <button
-            onClick={() => setIsAddingNew(!isAddingNew)}
-            className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs sm:text-sm shadow-md btn-press shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            <span>{isAddingNew ? 'Cancel' : 'Add Custom Verse'}</span>
-          </button>
-        </div>
-
-        {/* Categories */}
-        <div className="flex items-center gap-1.5 px-4 py-2.5 overflow-x-auto no-scrollbar border-b border-inherit bg-slate-100/50 dark:bg-black/20">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap btn-press ${
-                selectedCategory === cat
-                  ? 'bg-blue-600 text-white shadow-sm font-bold'
-                  : 'theme-subtle text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-
-        {/* Custom Verse Form */}
-        {isAddingNew && (
-          <form
-            onSubmit={handleCreateVerse}
-            className="p-5 border-b border-inherit flex flex-col gap-3 animate-in slide-in-from-top-3 duration-200 theme-subtle"
-          >
-            <div className="flex items-center gap-2 text-xs font-bold text-amber-500 uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Add Custom Scripture to Your Deck</span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <input
-                type="text"
-                placeholder="Reference (e.g. Romans 12:2)"
-                value={customRef}
-                onChange={(e) => setCustomRef(e.target.value)}
-                required
-                className="px-3.5 py-2.5 rounded-2xl border border-inherit bg-white dark:bg-slate-900 text-sm focus:border-blue-500 focus:outline-none"
-              />
-              <div className="flex gap-2">
-                <select
-                  value={customTranslation}
-                  onChange={(e) => setCustomTranslation(e.target.value as Translation)}
-                  className="px-3 py-2.5 rounded-2xl border border-inherit bg-white dark:bg-slate-900 text-sm focus:border-blue-500 focus:outline-none"
-                >
-                  <option value="KJV">KJV</option>
-                  <option value="NIV">NIV</option>
-                  <option value="ESV">ESV</option>
-                  <option value="NLT">NLT</option>
-                </select>
-                <select
-                  value={customCategory}
-                  onChange={(e) => setCustomCategory(e.target.value as VerseCategory)}
-                  className="flex-1 px-3 py-2.5 rounded-2xl border border-inherit bg-white dark:bg-slate-900 text-sm focus:border-blue-500 focus:outline-none"
-                >
-                  <option value="Custom">Custom</option>
-                  <option value="Essential Classics">Essential Classics</option>
-                  <option value="Peace & Anxiety">Peace & Anxiety</option>
-                  <option value="Strength & Courage">Strength & Courage</option>
-                  <option value="Love & Kindness">Love & Kindness</option>
-                  <option value="Faith & Salvation">Faith & Salvation</option>
-                  <option value="Wisdom & Guidance">Wisdom & Guidance</option>
-                  <option value="Hope & Comfort">Hope & Comfort</option>
-                </select>
-              </div>
-            </div>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-semibold text-ink-2">Verse text</span>
             <textarea
-              placeholder="Paste or type scripture text here..."
+              placeholder="Type or paste the verse"
               rows={3}
               value={customText}
               onChange={(e) => setCustomText(e.target.value)}
               required
-              className="px-3.5 py-2.5 rounded-2xl border border-inherit bg-white dark:bg-slate-900 text-sm focus:border-blue-500 focus:outline-none font-scripture"
+              className="field font-scripture text-[1.0625rem] leading-relaxed"
             />
-            <div className="flex justify-end gap-2 mt-1">
+          </label>
+          <button type="submit" className="btn btn-primary mt-1">
+            Save verse
+          </button>
+        </form>
+      )}
+
+      <div className="sticky top-0 z-10 -mx-5 bg-canvas px-5 pb-3">
+        <label className="relative block">
+          <span className="sr-only">Search verses</span>
+          <Search className="pointer-events-none absolute top-1/2 left-3.5 h-5 w-5 -translate-y-1/2 text-ink-3" aria-hidden="true" />
+          <input
+            type="search"
+            placeholder="Search reference or words"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="field pl-11"
+          />
+        </label>
+        <div className="no-scrollbar -mx-5 mt-3 flex gap-2 overflow-x-auto px-5" role="group" aria-label="Filter by category">
+          {CATEGORIES.map((cat) => {
+            const active = selectedCategory === cat;
+            return (
               <button
+                key={cat}
                 type="button"
-                onClick={() => setIsAddingNew(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-white"
+                aria-pressed={active}
+                onClick={() => setSelectedCategory(cat)}
+                className={`min-h-10 shrink-0 rounded-full px-4 font-display text-sm font-extrabold whitespace-nowrap transition-colors ${
+                  active ? 'bg-ink text-canvas' : 'bg-surface-2 text-ink-2 hover:bg-surface-3'
+                }`}
               >
-                Cancel
+                {cat}
               </button>
-              <button
-                type="submit"
-                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold btn-press shadow-md"
-              >
-                Save Verse
-              </button>
-            </div>
-          </form>
-        )}
+            );
+          })}
+        </div>
+      </div>
 
-        {/* Verses Scroll List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {filteredVerses.length === 0 ? (
-            <div className="text-center py-12 text-slate-400 text-sm">
-              No verses found matching your search.
-            </div>
-          ) : (
-            filteredVerses.map((verse) => {
-              const isCurrent = verse.id === activeVerseId;
-              const progress = progressMap[verse.id];
-              const score = progress ? progress.masteryScore : 0;
-
-              let statusLabel = 'New';
-              let statusColor = 'theme-subtle text-slate-500';
-              if (score >= 80) {
-                statusLabel = 'Mastered';
-                statusColor = 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20';
-              } else if (score >= 30) {
-                statusLabel = 'Learning';
-                statusColor = 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20';
-              }
-
-              return (
-                <div
-                  key={verse.id}
+      {filteredVerses.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-12 text-center">
+          <p className="font-display text-lg font-extrabold">No verses found</p>
+          <p className="max-w-xs text-ink-3">
+            {selectedCategory === 'Custom' && !searchQuery
+              ? 'Verses you add yourself will show up here.'
+              : 'Try another word, or clear the filter.'}
+          </p>
+          {(searchQuery || selectedCategory !== 'All') && (
+            <button
+              type="button"
+              className="btn btn-sm btn-secondary"
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedCategory('All');
+              }}
+            >
+              Show all verses
+            </button>
+          )}
+        </div>
+      ) : (
+        <ul className="group-list">
+          {filteredVerses.map((verse) => {
+            const isCurrent = verse.id === activeVerseId;
+            const score = progressMap[verse.id]?.masteryScore ?? 0;
+            const m = masteryOf(score);
+            return (
+              <li key={verse.id} className="relative flex items-start gap-1">
+                <button
+                  type="button"
                   onClick={() => {
                     onSelectVerse(verse);
                     onClose();
                   }}
-                  className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer flex flex-col gap-2 btn-press ${
-                    isCurrent
-                      ? 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-500 shadow-md'
-                      : 'theme-card hover:border-blue-400'
+                  aria-current={isCurrent ? 'true' : undefined}
+                  className={`flex min-w-0 flex-1 flex-col gap-1.5 p-4 text-left transition-colors hover:bg-surface-2 ${
+                    isCurrent ? 'bg-brand-soft/60' : ''
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-base flex items-center gap-2">
-                        {verse.reference}
-                        {isCurrent && (
-                          <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-blue-600 text-white font-bold">
-                            <Check className="w-3 h-3" /> Active
-                          </span>
-                        )}
-                      </h4>
-                      <span className="text-xs text-slate-400">
-                        ({verse.translation})
+                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="font-display text-[1.0625rem] font-extrabold">{verse.reference}</span>
+                    <span className="text-sm text-ink-3">{verse.translation}</span>
+                    {isCurrent && (
+                      <span className="pill bg-brand py-0.5 text-on-brand">
+                        <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />
+                        Practicing
                       </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border tabular-nums ${statusColor}`}
-                      >
-                        {statusLabel} ({score}%)
-                      </span>
-                      {verse.isCustom && onDeleteCustomVerse && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDeleteCustomVerse(verse.id);
-                          }}
-                          className="p-1 rounded text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
-                          title="Delete custom verse"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <p className="text-sm font-scripture line-clamp-2 italic leading-relaxed text-slate-700 dark:text-slate-300">
-                    "{verse.text}"
-                  </p>
-
-                  <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
-                    <span className="text-[11px] px-2 py-0.5 rounded-full theme-subtle">
-                      {verse.category}
+                    )}
+                  </span>
+                  <span className="line-clamp-2 font-scripture leading-relaxed text-ink-2">{verse.text}</span>
+                  <span className="flex items-center gap-2 text-sm text-ink-3">
+                    <span className={`pill py-0.5 ${m.cls}`}>
+                      {m.label}
+                      {score > 0 && <span className="font-bold opacity-80">{score}%</span>}
                     </span>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-    </div>
+                    <span className="truncate">{verse.category}</span>
+                  </span>
+                </button>
+                {verse.isCustom && onDeleteCustomVerse && (
+                  <button
+                    type="button"
+                    onClick={() => onDeleteCustomVerse(verse.id)}
+                    className="icon-btn mt-3 mr-3 bg-transparent text-ink-3 hover:!bg-danger-soft hover:!text-danger-ink"
+                    aria-label={`Delete ${verse.reference}`}
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Sheet>
   );
 };
