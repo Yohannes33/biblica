@@ -539,7 +539,12 @@ dialog.sheet {
   margin: auto auto 0;
   width: 100%;
   max-width: 100%;
-  max-height: calc(100dvh - var(--safe-top) - 1.5rem);
+  /* A definite height (not only max-height): WebKit resolves the body's flex
+     basis against it; with max-height alone the verse list collapsed on iPhone.
+     vh first for browsers without dvh. */
+  height: calc(100vh - var(--safe-top) - 1.5rem);
+  height: calc(100dvh - var(--safe-top) - 1.5rem);
+  max-height: none;
   padding: 0;
   border: none;
   border-radius: 1.75rem 1.75rem 0 0;
@@ -564,7 +569,8 @@ dialog.sheet::backdrop {
   dialog.sheet {
     margin: auto;
     max-width: 36rem;
-    max-height: min(46rem, calc(100dvh - 4rem));
+    height: min(46rem, calc(100vh - 4rem));
+    height: min(46rem, calc(100dvh - 4rem));
     border-radius: 1.75rem;
   }
 
