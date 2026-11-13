@@ -65,4 +65,6 @@ gh pr merge --squash --delete-branch
 git checkout main
 git pull origin main
 ```
-Merging to `main` automatically triggers the live production deployment on Vercel (`https://biblica-kohl.vercel.app`).
+Merging to `main`:
+1. Automatically triggers the live production deployment on Vercel (`https://biblica-kohl.vercel.app`).
+2. Automatically closes the associated GitHub issue via native GitHub PR linking (`Closes #<id>`) and the GitHub Action workflow (`.github/workflows/auto-close-issue.yml`), which also parses the branch name (`feat/#<id>-<desc>`).

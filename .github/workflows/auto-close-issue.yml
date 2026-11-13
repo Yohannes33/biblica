@@ -1,0 +1,69 @@
+name: Auto Close Issue on PR Merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+permissions:
+  issues: write
+  pull-requests: read
+
+jobs:
+  close-issue:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract and Close Associated Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const branchName = pr.head.ref;
+            const prBody = pr.body || '';
+
+            const issueMatches = new Set();
+
+            // Match issue number from branch name (e.g. feat/#12-desc, fix/#4-desc)
+            const branchMatch = branchName.match(/(?:feat|fix|chore)\/(?:#)?(\d+)/i);
+            if (branchMatch) {
+              issueMatches.add(parseInt(branchMatch[1], 10));
+            }
+
+            // Match issue numbers from PR body closing keywords
+            const bodyMatches = prBody.matchAll(/(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)/gi);
+            for (const match of bodyMatches) {
+              issueMatches.add(parseInt(match[1], 10));
+            }
+
+            for (const issueNumber of issueMatches) {
+              try {
+                const issue = await github.rest.issues.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                });
+
+                if (issue.data.state === 'open') {
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    body: `Closed automatically via merged Pull Request #${pr.number} (${pr.html_url}).`,
+                  });
+
+                  await github.rest.issues.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    state: 'closed',
+                  });
+                  console.log(`Successfully closed issue #${issueNumber}`);
+                } else {
+                  console.log(`Issue #${issueNumber} is already closed.`);
+                }
+              } catch (err) {
+                console.error(`Error processing issue #${issueNumber}:`, err.message);
+              }
+            }
