@@ -53,8 +53,8 @@ export const Sheet: React.FC<SheetProps> = ({ open, onClose, title, subtitle, he
         if (e.target === ref.current && pressStartedOnBackdrop.current) close();
       }}
     >
-      <div className="flex justify-center pt-2.5 sm:hidden" aria-hidden="true">
-        <div className="h-1.5 w-10 rounded-full bg-line-strong" />
+      <div className="flex justify-center pt-[5px] sm:hidden" aria-hidden="true">
+        <div className="h-[5px] w-9 rounded-full bg-ink-3/40" />
       </div>
       <header className="flex items-start justify-between gap-3 px-5 pt-3 pb-3 sm:pt-5">
         <div className="min-w-0">
