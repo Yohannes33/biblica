@@ -139,7 +139,7 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({
             <div className="my-auto text-center px-4">
               {flipMode === 'ref-to-text' ? (
                 <div>
-                  <h3 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+                  <h3 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
                     {currentVerse.reference}
                   </h3>
                   <p className="text-xs text-amber-500 mt-2 font-bold">
@@ -151,7 +151,7 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({
                 </div>
               ) : (
                 <div>
-                  <p className="text-lg sm:text-2xl font-scripture leading-relaxed italic">
+                  <p className="text-lg sm:text-2xl font-scripture leading-relaxed italic text-slate-900 dark:text-slate-100 font-medium">
                     "{currentVerse.text}"
                   </p>
                   <p className="text-xs text-blue-600 dark:text-blue-400 mt-4 font-bold uppercase tracking-wider">
@@ -179,7 +179,7 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({
           {/* BACK OF CARD */}
           <div className="absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-3xl p-7 sm:p-9 flex flex-col justify-between theme-card border-blue-500/40 shadow-xl">
             <div className="flex items-center justify-between">
-              <h4 className="text-base sm:text-lg font-bold flex items-center gap-2">
+              <h4 className="text-base sm:text-lg font-bold flex items-center gap-2 text-slate-900 dark:text-white">
                 <span>{currentVerse.reference}</span>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
                   {currentVerse.translation}
@@ -199,7 +199,7 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({
             </div>
 
             <div className="my-auto py-2 overflow-y-auto max-h-[190px]">
-              <p className="text-lg sm:text-2xl font-scripture leading-relaxed text-center">
+              <p className="text-lg sm:text-2xl font-scripture leading-relaxed text-center text-slate-900 dark:text-slate-100 font-medium">
                 "{currentVerse.text}"
               </p>
             </div>

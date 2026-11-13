@@ -206,7 +206,7 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({
             <Timer className="w-4 h-4" />
             <span>{timeLeft}s</span>
           </div>
-          <div className="font-extrabold text-base tabular-nums">
+          <div className="font-extrabold text-base tabular-nums text-slate-900 dark:text-white">
             {score} <span className="text-xs font-normal text-slate-400">pts</span>
           </div>
         </div>
@@ -219,7 +219,7 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({
             <Trophy className="w-9 h-9" />
           </div>
           <div>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
               Round Complete!
             </h2>
             <p className="text-slate-500 dark:text-slate-300 text-sm mt-1">

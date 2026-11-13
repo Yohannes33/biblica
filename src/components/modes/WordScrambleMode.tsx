@@ -89,7 +89,7 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({
           <span className="text-[11px] uppercase tracking-widest font-bold text-blue-600 dark:text-blue-400">
             Word Scramble
           </span>
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
             {verse.reference}
           </h2>
         </div>
