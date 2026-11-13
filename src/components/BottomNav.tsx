@@ -1,12 +1,5 @@
 import React from 'react';
-import { 
-  FileEdit, 
-  Layers, 
-  Dices, 
-  HelpCircle, 
-  Bookmark, 
-  User 
-} from 'lucide-react';
+import { PenLine, Layers, Puzzle, Zap, Trophy } from 'lucide-react';
 import type { AppTab } from '../types/verse';
 
 interface BottomNavProps {
@@ -14,38 +7,41 @@ interface BottomNavProps {
   onSelectTab: (tab: AppTab) => void;
 }
 
-export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onSelectTab }) => {
-  const tabs: { id: AppTab; label: string; icon: React.FC<{ className?: string }> }[] = [
-    { id: 'cloze', label: 'Cloze', icon: FileEdit },
-    { id: 'flashcards', label: 'Cards', icon: Layers },
-    { id: 'scramble', label: 'Scramble', icon: Dices },
-    { id: 'trivia', label: 'Trivia', icon: HelpCircle },
-    { id: 'library', label: 'Library', icon: Bookmark },
-    { id: 'account', label: 'Account', icon: User },
-  ];
+const TABS: { id: AppTab; label: string; icon: React.FC<{ className?: string; strokeWidth?: number }> }[] = [
+  { id: 'cloze', label: 'Fill In', icon: PenLine },
+  { id: 'flashcards', label: 'Cards', icon: Layers },
+  { id: 'scramble', label: 'Scramble', icon: Puzzle },
+  { id: 'trivia', label: 'Trivia', icon: Zap },
+  { id: 'account', label: 'Progress', icon: Trophy },
+];
 
-  return (
-    <nav className="fixed bottom-4 left-4 right-4 z-40 max-w-lg mx-auto">
-      <div className="theme-card rounded-3xl p-1.5 flex items-center justify-around shadow-xl border">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = currentTab === tab.id;
-          return (
+export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onSelectTab }) => (
+  <nav aria-label="Practice modes" className="material-bar fixed inset-x-0 bottom-0 z-30 border-t border-line pb-[var(--safe-bottom)]">
+    <ul className="mx-auto flex h-[var(--tabbar-h)] max-w-xl items-stretch px-2">
+      {TABS.map(({ id, label, icon: Icon }) => {
+        const isActive = currentTab === id;
+        return (
+          <li key={id} className="flex flex-1">
             <button
-              key={tab.id}
-              onClick={() => onSelectTab(tab.id)}
-              className={`flex-1 py-2 px-1 rounded-2xl flex flex-col items-center justify-center transition-all btn-press ${
-                isActive 
-                  ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/30' 
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              type="button"
+              onClick={() => onSelectTab(id)}
+              aria-current={isActive ? 'page' : undefined}
+              className={`group flex flex-1 flex-col items-center justify-center gap-0.5 font-display text-[0.6875rem] font-extrabold transition-colors ${
+                isActive ? 'text-brand-ink' : 'text-ink-3 hover:text-ink'
               }`}
             >
-              <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
-              <span className="text-[10px] mt-0.5 tracking-tight font-medium">{tab.label}</span>
+              <span
+                className={`grid h-8 w-14 place-items-center rounded-full transition-[background-color,transform] duration-200 group-active:scale-90 ${
+                  isActive ? 'bg-brand-soft' : ''
+                }`}
+              >
+                <Icon className="h-[22px] w-[22px]" strokeWidth={isActive ? 2.5 : 2} />
+              </span>
+              {label}
             </button>
-          );
-        })}
-      </div>
-    </nav>
-  );
-};
+          </li>
+        );
+      })}
+    </ul>
+  </nav>
+);

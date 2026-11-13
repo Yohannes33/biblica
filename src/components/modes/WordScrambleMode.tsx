@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { RotateCcw, Lightbulb, Award, ChevronRight } from 'lucide-react';
+import { RotateCcw, Lightbulb, Award, ArrowRight } from 'lucide-react';
 import type { Verse } from '../../types/verse';
 import { playSound } from '../../utils/audio';
 import { fireCelebrationConfetti } from '../../utils/confetti';
+import { ProgressBar } from '../ui/Progress';
+import { useRevealOnShow } from '../../utils/useRevealOnShow';
 
 interface WordScrambleModeProps {
   verse: Verse;
@@ -17,31 +19,21 @@ interface TileItem {
   word: string;
 }
 
-export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({
-  verse,
-  soundEnabled,
-  onCorrect,
-  onNextVerse,
-}) => {
+const SCRAMBLE_XP = 35;
+
+export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, soundEnabled, onCorrect, onNextVerse }) => {
   const [selectedTiles, setSelectedTiles] = useState<TileItem[]>([]);
   const [availableTiles, setAvailableTiles] = useState<TileItem[]>([]);
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const [wrongTileId, setWrongTileId] = useState<string | null>(null);
   const [hintIndex, setHintIndex] = useState<number | null>(null);
+  const completeRef = useRevealOnShow<HTMLElement>(isCompleted);
 
-  const words = useMemo(() => {
-    return verse.text.split(/\s+/).filter(Boolean);
-  }, [verse.text]);
+  const words = useMemo(() => verse.text.split(/\s+/).filter(Boolean), [verse.text]);
 
   const setupPuzzle = () => {
-    const tiles: TileItem[] = words.map((w, index) => ({
-      id: `${index}-${w}`,
-      originalIndex: index,
-      word: w,
-    }));
-
-    const shuffled = [...tiles].sort(() => Math.random() - 0.5);
-    setAvailableTiles(shuffled);
+    const tiles: TileItem[] = words.map((w, index) => ({ id: `${index}-${w}`, originalIndex: index, word: w }));
+    setAvailableTiles([...tiles].sort(() => Math.random() - 0.5));
     setSelectedTiles([]);
     setIsCompleted(false);
     setHintIndex(null);
@@ -54,8 +46,7 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({
   const handleTileClick = (tile: TileItem) => {
     if (isCompleted) return;
 
-    const expectedIndex = selectedTiles.length;
-    if (tile.originalIndex === expectedIndex) {
+    if (tile.originalIndex === selectedTiles.length) {
       playSound.correct(soundEnabled);
       const newSelected = [...selectedTiles, tile];
       setSelectedTiles(newSelected);
@@ -67,7 +58,7 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({
         setIsCompleted(true);
         playSound.celebrate(soundEnabled);
         fireCelebrationConfetti();
-        onCorrect(35);
+        onCorrect(SCRAMBLE_XP);
       }
     } else {
       playSound.incorrect(soundEnabled);
@@ -76,120 +67,96 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({
     }
   };
 
-  const handleHint = () => {
-    const nextExpectedIndex = selectedTiles.length;
-    setHintIndex(nextExpectedIndex);
-  };
-
   return (
-    <div className="w-full max-w-2xl mx-auto flex flex-col gap-5 p-4 sm:p-6 pb-28">
-      {/* Header */}
-      <div className="theme-card p-4 sm:p-5 rounded-3xl flex items-center justify-between">
-        <div>
-          <span className="text-[11px] uppercase tracking-widest font-bold text-blue-600 dark:text-blue-400">
-            Word Scramble
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-4">
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="font-display text-xl font-extrabold tracking-tight">Rebuild the verse</h2>
+          <p className="text-sm text-ink-3">Tap the words in order.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setHintIndex(selectedTiles.length)}
+          disabled={isCompleted}
+          className="btn btn-sm btn-secondary"
+        >
+          <Lightbulb className="h-[18px] w-[18px] text-gold-ink" strokeWidth={2.5} />
+          Hint
+        </button>
+        <button type="button" onClick={setupPuzzle} className="icon-btn" aria-label="Shuffle and restart" title="Restart">
+          <RotateCcw className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* Built sentence */}
+      <article className="card flex min-h-44 flex-col p-5 sm:p-6" aria-label={`${verse.reference}, words placed so far`}>
+        <div className="mb-4 flex items-center gap-3">
+          <ProgressBar value={(selectedTiles.length / words.length) * 100} label="Words placed" className="flex-1" />
+          <span className="font-display text-sm font-extrabold text-ink-3 tabular-nums">
+            {selectedTiles.length}/{words.length}
           </span>
-          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-            {verse.reference}
-          </h2>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleHint}
-            className="p-2.5 rounded-2xl theme-subtle text-amber-500 hover:text-amber-600 btn-press"
-            title="Hint"
-          >
-            <Lightbulb className="w-4 h-4" />
-          </button>
-          <button
-            onClick={setupPuzzle}
-            className="p-2.5 rounded-2xl theme-subtle text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 btn-press"
-            title="Reset"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Target Rebuilt Sentence */}
-      <div className="min-h-[160px] sm:min-h-[190px] theme-card rounded-3xl p-6 sm:p-8 flex flex-wrap content-start items-baseline gap-2">
         {selectedTiles.length === 0 ? (
-          <div className="w-full h-full my-auto flex flex-col items-center justify-center text-slate-400 text-sm font-medium">
-            <span>Tap the scrambled scripture tokens below in order</span>
-          </div>
+          <p className="my-auto text-center text-ink-3">
+            Start with the first word of <span className="font-semibold text-ink-2">{verse.reference}</span>
+          </p>
         ) : (
-          selectedTiles.map((tile) => (
-            <span
-              key={tile.id}
-              className="inline-block px-3 py-1 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-300 border border-blue-500/30 text-base sm:text-lg font-scripture font-semibold animate-in zoom-in-95 duration-150"
-            >
-              {tile.word}
-            </span>
-          ))
+          <p className="font-scripture text-xl leading-[1.9] sm:text-2xl" aria-live="polite">
+            {selectedTiles.map((tile, i) => (
+              <React.Fragment key={tile.id}>
+                <span className={i === selectedTiles.length - 1 ? 'animate-pop inline-block' : ''}>{tile.word}</span>{' '}
+              </React.Fragment>
+            ))}
+            {!isCompleted && (
+              <span className="animate-slot inline-block h-7 w-12 translate-y-1 rounded-lg border-2 border-brand bg-brand-soft" aria-hidden="true" />
+            )}
+          </p>
         )}
-      </div>
+      </article>
 
-      {/* Progress */}
-      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-1">
-        <span className="tabular-nums font-medium">
-          Assembled {selectedTiles.length} of {words.length} tokens
-        </span>
-        <span className="text-blue-600 dark:text-blue-400 font-bold tabular-nums">+35 XP</span>
-      </div>
-
-      {/* Scrambled Chips */}
       {isCompleted ? (
-        <div className="theme-card border-emerald-500/30 p-7 rounded-3xl text-center flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-md">
-            <Award className="w-8 h-8" />
-          </div>
+        <section
+          ref={completeRef}
+          className="card animate-rise flex scroll-mb-[calc(var(--tabbar-h)+var(--safe-bottom)+1rem)] flex-col items-center gap-4 border-gold bg-gold-soft p-6 text-center"
+          aria-live="polite"
+        >
+          <span className="animate-pop grid h-16 w-16 place-items-center rounded-full bg-gold text-[oklch(0.3_0.06_70)] shadow-[0_4px_0_var(--gold-edge)]">
+            <Award className="h-9 w-9" strokeWidth={2.25} />
+          </span>
           <div>
-            <h3 className="text-2xl font-bold tracking-tight">Verse Rebuilt Flawlessly!</h3>
-            <p className="text-slate-600 dark:text-slate-300 text-sm mt-1">
-              You pieced every word together into scripture.
-            </p>
-            <div className="mt-2 text-xs font-bold text-amber-500">+35 XP Earned</div>
+            <h2 className="font-display text-2xl font-extrabold tracking-tight">Verse rebuilt!</h2>
+            <p className="mt-1 text-ink-2">Every word in the right place.</p>
+            <p className="pill mt-3 bg-gold px-3 text-base text-[oklch(0.28_0.06_70)]">+{SCRAMBLE_XP} XP</p>
           </div>
-          <div className="flex items-center gap-3 mt-2">
-            <button
-              onClick={setupPuzzle}
-              className="px-6 py-3.5 rounded-2xl theme-subtle font-semibold text-sm border flex items-center gap-2 btn-press"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span>Play Again</span>
+          <div className="flex w-full flex-col gap-3 sm:flex-row">
+            <button type="button" onClick={onNextVerse} className="btn btn-primary flex-1">
+              Next verse
+              <ArrowRight className="h-5 w-5" strokeWidth={2.5} />
             </button>
-            <button
-              onClick={onNextVerse}
-              className="px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-md flex items-center gap-2 btn-press"
-            >
-              <span>Next Verse</span>
-              <ChevronRight className="w-4 h-4" />
+            <button type="button" onClick={setupPuzzle} className="btn btn-secondary flex-1">
+              Play again
             </button>
           </div>
-        </div>
+        </section>
       ) : (
-        <div className="flex flex-wrap gap-2.5 p-4 theme-card rounded-3xl">
+        <section aria-label="Scrambled words" className="flex flex-wrap gap-2.5">
           {availableTiles.map((tile) => {
             const isWrong = wrongTileId === tile.id;
             const isHint = hintIndex === tile.originalIndex;
-
             return (
               <button
                 key={tile.id}
+                type="button"
                 onClick={() => handleTileClick(tile)}
-                className={`px-3.5 py-2 rounded-xl text-sm sm:text-base font-medium transition-all btn-press shadow-sm ${
-                  isWrong
-                    ? 'bg-rose-500 text-white border border-rose-400 animate-shake'
-                    : isHint
-                    ? 'bg-amber-400/20 text-amber-600 dark:text-amber-300 border border-amber-400 animate-pulse font-bold'
-                    : 'theme-subtle hover:border-blue-500'
+                className={`tile min-h-12 px-4 py-2 font-display text-[1.0625rem] font-bold ${
+                  isWrong ? 'tile-wrong animate-shake' : isHint ? 'tile-hint animate-pop' : ''
                 }`}
               >
                 {tile.word}
               </button>
             );
           })}
-        </div>
+        </section>
       )}
     </div>
   );

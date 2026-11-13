@@ -1,170 +1,153 @@
 import React from 'react';
-import type { UserStats, Verse, VerseProgress } from '../types/verse';
-import { Flame, Trophy, Award, Zap, BookmarkCheck, CheckCircle2 } from 'lucide-react';
+import type { UserProfile, UserStats, Verse, VerseProgress } from '../types/verse';
+import { Flame, Award, Zap, CheckCircle2, BookOpen, Layers, Trophy, Lock, Settings, Sprout, Cloud } from 'lucide-react';
+import { getLevelProgress, getLevelTitle } from '../utils/level';
+import { ProgressBar, Ring } from './ui/Progress';
 
 interface StatsViewProps {
   stats: UserStats;
+  profile: UserProfile;
+  isSignedIn: boolean;
+  canSignIn: boolean;
   verses: Verse[];
   progressMap: Record<string, VerseProgress>;
+  onOpenSettings: () => void;
 }
 
-export const StatsView: React.FC<StatsViewProps> = ({ stats, verses, progressMap }) => {
-  const masteredCount = Object.values(progressMap).filter((p) => p.masteryScore >= 80).length;
-  const learningCount = Object.values(progressMap).filter((p) => p.masteryScore > 0 && p.masteryScore < 80).length;
-
-  const currentLevelXP = (stats.level - 1) * 100;
-  const nextLevelXP = stats.level * 100;
-  const xpIntoLevel = Math.max(0, stats.xp - currentLevelXP);
-  const xpNeeded = nextLevelXP - currentLevelXP;
-  const progressPercent = Math.min(100, Math.round((xpIntoLevel / xpNeeded) * 100));
-
-  const getLevelTitle = (lvl: number) => {
-    if (lvl >= 10) return 'Theological Scholar';
-    if (lvl >= 7) return 'Scripture Disciple';
-    if (lvl >= 5) return 'Faith Memorizer';
-    if (lvl >= 3) return 'Seeker of Truth';
-    return 'Devoted Pilgrim';
-  };
+export const StatsView: React.FC<StatsViewProps> = ({ stats, profile, isSignedIn, canSignIn, verses, progressMap, onOpenSettings }) => {
+  const progressValues = Object.values(progressMap);
+  const masteredCount = progressValues.filter((p) => p.masteryScore >= 80).length;
+  const learningCount = progressValues.filter((p) => p.masteryScore > 0 && p.masteryScore < 80).length;
+  const level = getLevelProgress(stats.xp, stats.level);
 
   const badges = [
-    {
-      title: 'First Flame',
-      desc: 'Maintained a 1-day study streak',
-      unlocked: stats.streakDays >= 1,
-      icon: Flame,
-      color: 'from-amber-400 to-amber-600',
-    },
-    {
-      title: 'Verse Scribe',
-      desc: 'Mastered your first verse',
-      unlocked: masteredCount >= 1,
-      icon: CheckCircle2,
-      color: 'from-emerald-400 to-emerald-600',
-    },
-    {
-      title: 'Word Master',
-      desc: 'Completed 5 cloze memorization stages',
-      unlocked: (stats.clozeCompleted || 0) >= 5,
-      icon: Zap,
-      color: 'from-blue-500 to-indigo-600',
-    },
-    {
-      title: '100% Mastery',
-      desc: 'Completed Level 4 full recitation cloze',
-      unlocked: stats.level >= 3,
-      icon: Award,
-      color: 'from-purple-500 to-pink-500',
-    },
+    { title: 'First Flame', desc: 'Keep a 1-day streak', unlocked: stats.streakDays >= 1, icon: Flame, tone: 'bg-flame text-white' },
+    { title: 'Verse Scribe', desc: 'Master your first verse', unlocked: masteredCount >= 1, icon: CheckCircle2, tone: 'bg-brand text-on-brand' },
+    { title: 'Word Master', desc: 'Finish 5 fill-in stages', unlocked: (stats.clozeCompleted || 0) >= 5, icon: Zap, tone: 'bg-teal text-white' },
+    { title: 'Rising Star', desc: 'Reach level 3', unlocked: stats.level >= 3, icon: Award, tone: 'bg-gold text-[oklch(0.3_0.06_70)]' },
+  ];
+  const unlockedCount = badges.filter((b) => b.unlocked).length;
+
+  const rows = [
+    { label: 'Day streak', value: stats.streakDays, icon: Flame, chip: 'bg-flame-soft text-flame-ink' },
+    { label: 'Verses mastered', value: masteredCount, icon: CheckCircle2, chip: 'bg-brand-soft text-brand-ink' },
+    { label: 'Still learning', value: learningCount, icon: Sprout, chip: 'bg-teal-soft text-teal-ink' },
+    { label: 'Verses in library', value: verses.length, icon: BookOpen, chip: 'bg-surface-2 text-ink-2' },
+    { label: 'Cards reviewed', value: stats.cardsReviewed || 0, icon: Layers, chip: 'bg-surface-2 text-ink-2' },
+    { label: 'Trivia rounds', value: stats.quizzesCompleted || 0, icon: Trophy, chip: 'bg-surface-2 text-ink-2' },
   ];
 
   return (
-    <div className="w-full max-w-2xl mx-auto flex flex-col gap-5 p-4 sm:p-6 pb-28">
-      {/* Activity / Level Hero Card */}
-      <div className="theme-card p-6 sm:p-8 rounded-3xl relative overflow-hidden shadow-md">
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
-          {/* Circular Level Ring */}
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-amber-400 p-0.5 shadow-lg shadow-blue-600/20 flex items-center justify-center shrink-0">
-            <div className="w-full h-full bg-slate-900 dark:bg-[#0a0d14] rounded-2xl flex flex-col items-center justify-center">
-              <span className="text-[10px] uppercase font-bold text-amber-400">Level</span>
-              <span className="text-2xl font-extrabold text-white tabular-nums">{stats.level}</span>
-            </div>
-          </div>
-
-          <div className="flex-1 w-full">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400">
-              Personal Scripture Journey
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 pt-4">
+      {/* Profile + level */}
+      <section className="card p-5">
+        <div className="flex items-center gap-3">
+          {profile.avatarUrl ? (
+            <img src={profile.avatarUrl} alt="" referrerPolicy="no-referrer" className="h-14 w-14 shrink-0 rounded-full object-cover" />
+          ) : (
+            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-brand font-display text-2xl font-extrabold text-on-brand">
+              {profile.name.charAt(0).toUpperCase() || 'P'}
             </span>
-            <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight mt-0.5">
-              {getLevelTitle(stats.level)}
-            </h2>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 tabular-nums font-medium">
-              {stats.xp} Total XP &bull; {stats.streakDays} Day Continuous Streak
-            </p>
+          )}
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate font-display text-xl font-extrabold">{profile.name}</h2>
+            <p className="truncate text-sm text-ink-3">{getLevelTitle(stats.level)}</p>
+          </div>
+          <button type="button" onClick={onOpenSettings} className="btn btn-sm btn-secondary">
+            <Settings className="h-[18px] w-[18px]" strokeWidth={2.25} />
+            Settings
+          </button>
+        </div>
 
-            {/* Level progress bar */}
-            <div className="mt-4">
-              <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400 mb-1.5 font-semibold tabular-nums">
-                <span>Progress to Level {stats.level + 1}</span>
-                <span>{progressPercent}%</span>
-              </div>
-              <div className="w-full bg-slate-200 dark:bg-white/[0.08] h-2.5 rounded-full overflow-hidden">
-                <div
-                  className="bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-400 h-full rounded-full transition-all duration-500"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-            </div>
+        {canSignIn && !isSignedIn && (
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            className="mt-4 flex w-full items-center gap-3 rounded-2xl bg-surface-2 p-3 text-left transition-colors hover:bg-surface-3"
+          >
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand-ink">
+              <Cloud className="h-5 w-5" strokeWidth={2.25} aria-hidden="true" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-display font-extrabold">Save your streak</span>
+              <span className="block text-sm text-ink-3">Sign in to sync across devices</span>
+            </span>
+            <span className="font-display text-sm font-extrabold text-brand-ink">Sign in</span>
+          </button>
+        )}
+
+        <div className="mt-5 flex items-center gap-4 rounded-2xl bg-gold-soft p-4">
+          <Ring value={level.percent} size={72} stroke={7} tone="gold">
+            <span className="flex flex-col items-center leading-none">
+              <span className="text-[0.6875rem] font-bold text-gold-ink">LEVEL</span>
+              <span className="font-display text-2xl font-extrabold tabular-nums">{stats.level}</span>
+            </span>
+          </Ring>
+          <div className="min-w-0 flex-1">
+            <p className="font-display text-lg font-extrabold tabular-nums">{stats.xp.toLocaleString()} XP</p>
+            <p className="text-sm text-ink-2">
+              <span className="font-semibold tabular-nums">{level.toNext}</span> XP to level {stats.level + 1}
+            </p>
+            <ProgressBar value={level.percent} tone="gold" label={`Progress to level ${stats.level + 1}`} className="mt-2" />
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* 4 Metric Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="theme-card p-4 rounded-2xl flex flex-col items-center text-center shadow-sm">
-          <Flame className="w-5 h-5 text-amber-500 fill-amber-500 mb-1" />
-          <span className="text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums">{stats.streakDays}</span>
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Day Streak</span>
+      {/* Badges */}
+      <section aria-labelledby="badges-heading">
+        <div className="flex items-baseline justify-between">
+          <h2 id="badges-heading" className="section-label">
+            Badges
+          </h2>
+          <span className="section-label tabular-nums">
+            {unlockedCount} of {badges.length}
+          </span>
         </div>
-
-        <div className="theme-card p-4 rounded-2xl flex flex-col items-center text-center shadow-sm">
-          <CheckCircle2 className="w-5 h-5 text-emerald-500 mb-1" />
-          <span className="text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums">{masteredCount}</span>
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Mastered</span>
-        </div>
-
-        <div className="theme-card p-4 rounded-2xl flex flex-col items-center text-center shadow-sm">
-          <BookmarkCheck className="w-5 h-5 text-blue-600 dark:text-blue-400 mb-1" />
-          <span className="text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums">{learningCount}</span>
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Learning</span>
-        </div>
-
-        <div className="theme-card p-4 rounded-2xl flex flex-col items-center text-center shadow-sm">
-          <Zap className="w-5 h-5 text-amber-500 mb-1" />
-          <span className="text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums">{verses.length}</span>
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">In Deck</span>
-        </div>
-      </div>
-
-      {/* Badges Section */}
-      <div className="flex flex-col gap-3">
-        <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-          <Trophy className="w-4 h-4 text-amber-500" />
-          <span>Milestones & Badges</span>
-        </h3>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {badges.map((b) => {
-            const Icon = b.icon;
+            const Icon = b.unlocked ? b.icon : Lock;
             return (
-              <div
+              <li
                 key={b.title}
-                className={`p-4 rounded-2xl border flex items-center gap-3.5 transition-all ${
-                  b.unlocked
-                    ? 'theme-card shadow-sm border-inherit'
-                    : 'theme-subtle opacity-50 border-inherit'
+                className={`flex flex-col items-center gap-2 rounded-2xl border p-4 text-center ${
+                  b.unlocked ? 'border-line bg-surface' : 'border-dashed border-line-strong'
                 }`}
               >
-                <div
-                  className={`w-11 h-11 rounded-2xl bg-gradient-to-tr ${b.color} flex items-center justify-center text-white shrink-0 shadow-md`}
+                <span
+                  className={`grid h-14 w-14 place-items-center rounded-full ${
+                    b.unlocked ? `${b.tone} animate-pop shadow-[0_4px_0_oklch(0_0_0/0.15)]` : 'bg-surface-2 text-ink-3'
+                  }`}
                 >
-                  <Icon className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-bold text-slate-900 dark:text-white text-sm">{b.title}</h4>
-                    {b.unlocked && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20">
-                        Unlocked
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">{b.desc}</p>
-                </div>
-              </div>
+                  <Icon className="h-7 w-7" strokeWidth={2.25} aria-hidden="true" />
+                </span>
+                <span className="font-display text-[0.9375rem] leading-tight font-extrabold">{b.title}</span>
+                <span className="text-[0.8125rem] leading-snug text-ink-3">
+                  <span className="sr-only">{b.unlocked ? 'Unlocked. ' : 'Locked. '}</span>
+                  {b.desc}
+                </span>
+              </li>
             );
           })}
-        </div>
-      </div>
+        </ul>
+      </section>
+
+      {/* Stats */}
+      <section aria-labelledby="stats-heading">
+        <h2 id="stats-heading" className="section-label">
+          Your stats
+        </h2>
+        <dl className="group-list">
+          {rows.map(({ label, value, icon: Icon, chip }) => (
+            <div key={label} className="flex min-h-14 items-center gap-3 px-4 py-2.5">
+              <span className={`grid h-9 w-9 place-items-center rounded-xl ${chip}`} aria-hidden="true">
+                <Icon className="h-5 w-5" strokeWidth={2.25} />
+              </span>
+              <dt className="flex-1 font-medium">{label}</dt>
+              <dd className="font-display text-lg font-extrabold tabular-nums">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
     </div>
   );
 };

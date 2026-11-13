@@ -1,18 +1,29 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="light">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/pwa-192x192.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#4f46e5" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#ffffff" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Biblica" />
     <link rel="apple-touch-icon" href="/pwa-192x192.svg" />
-    <title>Biblica | Bible Verse Memorization & Trivia</title>
-    <meta name="description" content="Gamified Bible verse memorization with progressive cloze puzzles, flashcards, word scrambles, and trivia quizzes." />
+    <title>Biblica · Bible Verse Memory</title>
+    <meta name="description" content="Memorize Bible verses with fill-in-the-blank, flashcards, word scrambles and trivia." />
+    <script>
+      // Apply the saved theme before first paint to avoid a light flash in dark mode.
+      try {
+        var s = JSON.parse(localStorage.getItem('biblica_stats_v1') || '{}');
+        if (s.theme === 'dark') {
+          document.documentElement.className = 'dark';
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#151a16');
+        }
+      } catch (e) {}
+    </script>
   </head>
-  <body class="antialiased selection:bg-blue-600 selection:text-white min-h-screen">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
