@@ -1,5 +1,6 @@
 import { INITIAL_VERSES } from '../data/initialVerses';
 import type { UserProfile, UserStats, Verse, VerseProgress } from '../types/verse';
+import { MASTERY_DELTA, schedule, type Rating } from './srs';
 
 const STORAGE_KEYS = {
   VERSES: 'biblica_verses_v1',
@@ -120,6 +121,37 @@ export const StorageService = {
     }
 
     const stats = StorageService.addXP(xpGained);
+    return { stats, progress: current };
+  },
+
+  /** Rate a flashcard: reschedule it, move mastery by the rating, award XP. */
+  reviewCard: (verseId: string, rating: Rating, xpGained: number): { stats: UserStats; progress: VerseProgress } => {
+    const progressMap = StorageService.getProgressMap();
+    const now = Date.now();
+    const prev = progressMap[verseId];
+    const base: VerseProgress = prev ?? {
+      verseId,
+      masteryScore: 0,
+      timesPracticed: 0,
+      correctAnswers: 0,
+      clozeStage: 1,
+      lastPracticed: now,
+    };
+    const current: VerseProgress = { ...base, ...schedule(prev, rating, now), lastPracticed: now };
+    current.timesPracticed += 1;
+    if (rating !== 'again') current.correctAnswers += 1;
+    current.masteryScore = Math.min(100, Math.max(0, current.masteryScore + MASTERY_DELTA[rating]));
+    progressMap[verseId] = current;
+
+    try {
+      localStorage.setItem(STORAGE_KEYS.PROGRESS, JSON.stringify(progressMap));
+    } catch (e) {
+      console.error('Failed to save progress map', e);
+    }
+
+    const stats = StorageService.addXP(xpGained);
+    stats.cardsReviewed = (stats.cardsReviewed || 0) + 1;
+    StorageService.saveStats(stats);
     return { stats, progress: current };
   },
 

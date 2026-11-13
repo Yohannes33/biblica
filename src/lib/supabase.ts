@@ -142,9 +142,38 @@ export const SupabaseService = {
       }));
 
       if (progressList.length > 0) {
-        await client.from('verse_progress').upsert(progressList, {
-          onConflict: 'user_id,verse_id'
-        });
+        // Review-schedule columns come from supabase/migrations/20261113_srs_schedule.sql.
+        // Until that migration is applied the upsert rejects them, so fall back
+        // to the basic columns rather than dropping the whole progress sync.
+        // Rows without a local schedule go up with the basic columns only:
+        // sending null schedule columns would erase a schedule another device
+        // saved to the cloud.
+        const scheduled = progressList
+          .filter((row) => progressMap[row.verse_id].srsDue !== undefined)
+          .map((row) => {
+            const p = progressMap[row.verse_id];
+            return {
+              ...row,
+              srs_due: p.srsDue,
+              srs_interval: p.srsInterval ?? null,
+              srs_ease: p.srsEase ?? null,
+              srs_reps: p.srsReps ?? null,
+              srs_lapses: p.srsLapses ?? null,
+              srs_introduced: p.srsIntroduced ?? null,
+            };
+          });
+        const unscheduled = progressList.filter((row) => progressMap[row.verse_id].srsDue === undefined);
+        const opts = { onConflict: 'user_id,verse_id' };
+
+        if (unscheduled.length > 0) await client.from('verse_progress').upsert(unscheduled, opts);
+        if (scheduled.length > 0) {
+          const { error } = await client.from('verse_progress').upsert(scheduled, opts);
+          if (error) {
+            // Migration not applied yet: still save the basic progress columns.
+            const basic = progressList.filter((row) => progressMap[row.verse_id].srsDue !== undefined);
+            await client.from('verse_progress').upsert(basic, opts);
+          }
+        }
       }
 
       // 3. Sync Custom Verses
@@ -225,6 +254,14 @@ export const SupabaseService = {
           correctAnswers: row.correct_answers,
           lastPracticed: row.last_practiced,
           clozeStage: row.cloze_stage,
+          // Present only once the schedule migration is applied; mergeProgress
+          // keeps the local schedule when these are null/undefined.
+          srsDue: row.srs_due ?? undefined,
+          srsInterval: row.srs_interval ?? undefined,
+          srsEase: row.srs_ease ?? undefined,
+          srsReps: row.srs_reps ?? undefined,
+          srsLapses: row.srs_lapses ?? undefined,
+          srsIntroduced: row.srs_introduced ?? undefined,
         };
       });
 

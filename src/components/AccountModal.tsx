@@ -198,7 +198,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
         </form>
       </Section>
 
-      <Section title="Daily goal" footer="How many verses you want to practice each day.">
+      <Section title="Daily goal" footer="How many new verses join your Cards review each day.">
         <div className="segmented" role="group" aria-label="Daily goal">
           {[1, 3, 5, 10].map((count) => (
             <button
