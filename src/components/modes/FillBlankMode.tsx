@@ -228,6 +228,12 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
         </p>
       </article>
 
+      {(speech.error || speech.hint) && (
+        <p role="status" className="animate-rise rounded-2xl bg-surface-2 px-4 py-3 text-sm font-semibold text-ink-2">
+          {speech.error || speech.hint}
+        </p>
+      )}
+
       {/* Answer area */}
       {isCompleted ? (
         <section
