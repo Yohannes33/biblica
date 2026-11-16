@@ -13,6 +13,7 @@ export const STOP_WORDS = new Set([
 
 export interface ScoredToken {
   index: number;
+  lead: string; // opening punctuation before the word, e.g. “ or (
   cleanWord: string;
   punctuation: string;
   fullToken: string;
@@ -24,9 +25,12 @@ export function analyzeVerseTokens(verseText: string): ScoredToken[] {
   const rawTokens = verseText.split(/\s+/).filter(Boolean);
 
   return rawTokens.map((raw, index) => {
-    const match = raw.match(/^([a-zA-Z0-9'’]+)([^a-zA-Z0-9'’]*)$/);
-    const cleanWord = match ? match[1] : raw;
-    const punctuation = match ? match[2] || '' : '';
+    // Modern translations open quotes on the word (“God), so peel off
+    // punctuation on both sides; apostrophes and hyphens stay in the word.
+    const match = raw.match(/^([^\p{L}\p{N}]*)([\p{L}\p{M}\p{N}](?:[\p{L}\p{M}\p{N}'’-]*[\p{L}\p{M}\p{N}])?)([^\p{L}\p{M}\p{N}]*)$/u);
+    const lead = match ? match[1] : '';
+    const cleanWord = match ? match[2] : raw;
+    const punctuation = match ? match[3] : '';
     const lower = cleanWord.toLowerCase();
     const isStopWord = STOP_WORDS.has(lower);
 
@@ -54,6 +58,7 @@ export function analyzeVerseTokens(verseText: string): ScoredToken[] {
 
     return {
       index,
+      lead,
       cleanWord,
       punctuation,
       fullToken: raw,

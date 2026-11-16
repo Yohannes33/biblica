@@ -6,6 +6,7 @@ import { Sheet } from './ui/Sheet';
 import { Avatar } from './ui/Avatar';
 import { newAvatarSeed } from '../utils/avatar';
 import { getLevelTitle } from '../utils/level';
+import { TRANSLATIONS } from '../data/translations';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -43,6 +44,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   const [name, setName] = useState(profile.name);
   const [translation, setTranslation] = useState<Translation>(profile.preferredTranslation);
   const [dailyGoal, setDailyGoal] = useState<number>(profile.dailyGoalVerses);
+  const selectedTranslation = TRANSLATIONS.find((t) => t.id === translation) ?? TRANSLATIONS[0];
 
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
@@ -254,22 +256,26 @@ export const AccountModal: React.FC<AccountModalProps> = ({
         </div>
       </Section>
 
-      <Section title="Default translation">
+      <Section
+        title="Default translation"
+        footer={`${selectedTranslation.name}: ${selectedTranslation.blurb.toLowerCase()}. The built-in verses use it.`}
+      >
         <div className="grid grid-cols-3 gap-2" role="group" aria-label="Default translation">
-          {(['KJV', 'ESV', 'NIV', 'NASB', 'NKJV', 'NLT'] as Translation[]).map((t) => (
+          {TRANSLATIONS.map(({ id, name }) => (
             <button
-              key={t}
+              key={id}
               type="button"
-              aria-pressed={translation === t}
+              aria-pressed={translation === id}
+              aria-label={`${id}, ${name}`}
               onClick={() => {
-                setTranslation(t);
-                onUpdateProfile({ ...profile, preferredTranslation: t });
+                setTranslation(id);
+                onUpdateProfile({ ...profile, preferredTranslation: id });
               }}
               className={`min-h-11 rounded-xl font-display font-extrabold transition-colors ${
-                translation === t ? 'bg-ink text-canvas' : 'bg-surface text-ink-2 ring-1 ring-line hover:bg-surface-2'
+                translation === id ? 'bg-ink text-canvas' : 'bg-surface text-ink-2 ring-1 ring-line hover:bg-surface-2'
               }`}
             >
-              {t}
+              {id}
             </button>
           ))}
         </div>

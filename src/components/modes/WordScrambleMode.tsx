@@ -58,7 +58,7 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, sound
 
   useEffect(() => {
     setupPuzzle();
-  }, [verse.id]);
+  }, [verse.id, verse.text]); // text changes when the default translation does
 
   const handleTileClick = (tile: TileItem) => {
     if (isCompleted) return;

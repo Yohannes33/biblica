@@ -44,7 +44,7 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
     setFilledWords({});
     setIsCompleted(false);
     setWrongWord(null);
-  }, [verse.id, level]);
+  }, [verse.id, verse.text, level]); // text changes when the default translation does
 
   const { stop: stopSpeech } = speech;
   useEffect(() => stopSpeech(), [verse.id, stopSpeech]);
@@ -185,6 +185,7 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
             if (isFilled) {
               return (
                 <React.Fragment key={token.index}>
+                  {token.lead}
                   <span className="animate-pop inline-block rounded-lg bg-brand-soft px-1.5 leading-normal font-semibold text-brand-ink">
                     {filledWords[idx]}
                   </span>
@@ -196,6 +197,7 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
 
             return (
               <React.Fragment key={token.index}>
+                {token.lead}
                 <span
                   className={`inline-block min-w-[3.25rem] rounded-lg px-1.5 text-center align-baseline leading-normal ${
                     isCurrent

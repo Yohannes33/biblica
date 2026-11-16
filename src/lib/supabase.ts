@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { UserProfile, UserStats, Verse, VerseProgress } from '../types/verse';
+import { toTranslation } from '../data/translations';
 
 const SUPABASE_CONFIG_KEY = 'biblica_supabase_config_v1';
 
@@ -295,7 +296,7 @@ export const SupabaseService = {
           name: profileData.full_name,
           email: profileData.email || user.email || '',
           avatarUrl: profileData.avatar_url,
-          preferredTranslation: profileData.preferred_translation,
+          preferredTranslation: toTranslation(profileData.preferred_translation),
           dailyGoalVerses: profileData.daily_goal_verses,
           theme: profileData.theme,
         } : undefined,
