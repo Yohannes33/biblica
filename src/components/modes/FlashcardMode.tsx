@@ -416,28 +416,30 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
         </div>
       ) : (
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={goPrev}
-            disabled={deck === 'review' && pos === 0}
-            className="btn btn-secondary w-14 px-0"
-            aria-label="Previous card"
-          >
-            <ChevronLeft className="h-6 w-6" strokeWidth={2.5} />
-          </button>
+          {deck === 'all' && (
+            <button
+              type="button"
+              onClick={goPrev}
+              className="btn btn-secondary w-14 px-0"
+              aria-label="Previous card"
+            >
+              <ChevronLeft className="h-6 w-6" strokeWidth={2.5} />
+            </button>
+          )}
           <button type="button" onClick={handleFlip} className="btn btn-primary flex-1">
             Flip card
           </button>
-          <button
-            type="button"
-            onClick={goNext}
-            disabled={deck === 'review' && remaining <= 1}
-            className="btn btn-secondary w-14 px-0"
-            aria-label={deck === 'review' ? 'Skip for now' : 'Next card'}
-            title={deck === 'review' ? 'Skip for now' : 'Next card'}
-          >
-            <ChevronRight className="h-6 w-6" strokeWidth={2.5} />
-          </button>
+          {deck === 'all' && (
+            <button
+              type="button"
+              onClick={goNext}
+              className="btn btn-secondary w-14 px-0"
+              aria-label="Next card"
+              title="Next card"
+            >
+              <ChevronRight className="h-6 w-6" strokeWidth={2.5} />
+            </button>
+          )}
         </div>
       )}
         </>
