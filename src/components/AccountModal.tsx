@@ -419,6 +419,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
         </a>
         {t('settings.avatarsVia')}
       </p>
+      <p className="mt-2 px-1 text-xs text-ink-3">{t('settings.version', { version: __APP_VERSION__ })}</p>
     </Sheet>
   );
 };

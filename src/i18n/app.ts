@@ -122,6 +122,7 @@ export const app = defineStrings(
     'settings.avatars': 'Avatars:',
     'settings.avatarsBy': 'by Lisa Wischofsky,',
     'settings.avatarsVia': ', via DiceBear.',
+    'settings.version': 'Biblica {version}',
   },
   {
     'app.opening': 'Biblica በመከፈት ላይ…',
@@ -239,5 +240,6 @@ export const app = defineStrings(
     'settings.avatars': 'አምሳያዎች፦',
     'settings.avatarsBy': 'በLisa Wischofsky የተሰራ፣',
     'settings.avatarsVia': '፣ በDiceBear በኩል።',
+    'settings.version': 'Biblica ስሪት {version}',
   }
 );
