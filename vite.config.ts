@@ -44,6 +44,21 @@ export default defineConfig({
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
           { src: 'maskable-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+        // Long-press the installed icon. App.tsx reads these query strings.
+        shortcuts: [
+          {
+            name: 'Review cards',
+            short_name: 'Review',
+            url: '/?tab=flashcards',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'Read the Bible',
+            short_name: 'Bible',
+            url: '/?open=bible',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+          },
         ]
       }
     })

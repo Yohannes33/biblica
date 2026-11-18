@@ -123,6 +123,13 @@ export const app = defineStrings(
     'settings.avatarsBy': 'by Lisa Wischofsky,',
     'settings.avatarsVia': ', via DiceBear.',
     'settings.version': 'Biblica {version}',
+    'install.title': 'Install Biblica',
+    'install.body': 'Add it to your home screen: it opens like an app and works offline.',
+    'install.iosBefore': 'Tap Share',
+    'install.iosAfter': ', then “Add to Home Screen”. It opens like an app and works offline.',
+    'install.share': 'Share',
+    'install.button': 'Install',
+    'install.notNow': 'Not now',
   },
   {
     'app.opening': 'Biblica በመከፈት ላይ…',
@@ -241,5 +248,12 @@ export const app = defineStrings(
     'settings.avatarsBy': 'በLisa Wischofsky የተሰራ፣',
     'settings.avatarsVia': '፣ በDiceBear በኩል።',
     'settings.version': 'Biblica ስሪት {version}',
+    'install.title': 'Biblicaን ይጫኑ',
+    'install.body': 'ወደ መነሻ ገጽዎ ያክሉት፤ እንደ መተግበሪያ ይከፈታል፣ ያለ ኢንተርኔትም ይሰራል።',
+    'install.iosBefore': 'የማጋሪያ (Share) ቁልፉን',
+    'install.iosAfter': ' ይንኩ፣ ከዚያ “Add to Home Screen” የሚለውን ይምረጡ። እንደ መተግበሪያ ይከፈታል፣ ያለ ኢንተርኔትም ይሰራል።',
+    'install.share': 'አጋራ',
+    'install.button': 'ይጫኑ',
+    'install.notNow': 'አሁን አይደለም',
   }
 );
