@@ -40,7 +40,8 @@ Biblica turns Scripture memorization into an engaging, gamified experience using
 - Curated collection across thematic categories:
   - *Essential Classics*, *Peace & Anxiety*, *Strength & Courage*, *Love & Kindness*, *Faith & Salvation*, *Wisdom & Guidance*, *Hope & Comfort*.
 - **The whole Bible in three translations**: KJV, BSB (Berean Standard Bible) and WEB (World English Bible). The built-in verses follow your default translation.
-- **Add any verse**: type a reference (`Romans 12:1-2`, `1 jn 4:19`, `ps 23:1–3`) and the text is looked up for you.
+- **Amharic New Testament (1962)**: pick አማርኛ to learn verses in Amharic. Old Testament built-in verses stay in KJV.
+- **Add any verse**: type a reference (`Romans 12:1-2`, `1 jn 4:19`, `ps 23:1–3`, `ዮሐንስ 3፡16`) and the text is looked up for you.
 
 ### 6. 🏆 Gamification Engine
 - **XP & Levels**: Earn XP for each correct word, card reviewed, and quiz completed. Level up from *Devoted Reader* to *Disciple of the Word*.
@@ -71,12 +72,18 @@ Biblica turns Scripture memorization into an engaging, gamified experience using
 The Bible ships as static JSON, one file per book per translation:
 
 ```
-public/bible/v1/<KJV|BSB|WEB>/<USFM book code>.json   // string[][]: [chapter-1][verse-1] -> text
+public/bible/v1/<KJV|BSB|WEB|AMH>/<USFM book code>.json   // (string|null)[][]: [chapter-1][verse-1] -> text
 ```
 
 - Files are immutable for a data version (`BIBLE_DATA_VERSION` in `src/data/translations.ts`). Vercel serves them with a one-year `immutable` cache header (`vercel.json`), and the service worker caches each book the first time it is opened, so it then works offline.
 - They are generated from the eBible.org USFM sources by `npm run build:bible` (needs Node 23.6+ and `unzip`). The script drops Psalm titles, headings and footnotes, checks every book's chapter count, and writes the built-in verses' text to `src/data/curatedText.json`. A verse a translation leaves out (the BSB omits verses missing from the oldest manuscripts, such as Matthew 17:21) is stored as `""`.
-- Only translations that may be redistributed in full are included. NIV, ESV, NLT, NASB and NKJV need a publisher licence.
+- Only translations that may be redistributed are included. NIV, ESV, NLT, NASB and NKJV need a publisher licence.
+
+### Amharic
+
+The Amharic New Testament is the 1962 text from eBible.org (`amh`): © 1962, 2003 United Bible Societies, used with the Bible Society of Ethiopia's permission for **non-commercial** use, on condition that the full copyright statement is shown (Settings → Bible texts). Any commercial use of Biblica needs the Bible Society of Ethiopia's written permission first.
+
+The digital text is damaged in 254 places: it marks 3-5 verses as printed together (`\v 14-16`) but keeps only one verse's words, sometimes the first and sometimes the last (John 3:14-16 holds only 3:16). John 1:41-52 are also numbered one too high. Every verse in those places, 857 in all, is stored as `null` and shown as not available rather than under a guessed number. Restoring them needs a native Amharic reader to confirm each one. Only the New Testament is available; the Old Testament needs the Bible Society's text.
 
 To add a translation: add it to `TRANSLATIONS` in `src/data/translations.ts` with its eBible.org id, run `npm run build:bible`, and commit the output. If a run would change files that are already published (eBible revises its texts), the script stops: bump `BIBLE_DATA_VERSION` so readers get the new files instead of their cached copies.
 

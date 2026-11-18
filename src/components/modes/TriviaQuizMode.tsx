@@ -4,6 +4,7 @@ import type { Verse } from '../../types/verse';
 import { playSound } from '../../utils/audio';
 import { fireCelebrationConfetti } from '../../utils/confetti';
 import { Ring } from '../ui/Progress';
+import { languageOf } from '../../data/translations';
 
 interface TriviaQuizModeProps {
   verses: Verse[];
@@ -18,6 +19,7 @@ interface Question {
   correctAnswer: string;
   options: string[];
   verseReference: string;
+  lang: 'en' | 'am';
 }
 
 const QUESTION_COUNT = 5;
@@ -41,9 +43,14 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
     const selectedVerses = pool.slice(0, QUESTION_COUNT);
 
     return selectedVerses.map((target, idx): Question => {
+      // Wrong answers come from verses in the target's language, so an Amharic
+      // question isn't answered by spotting the one Amharic choice.
+      const lang = languageOf(target.translation);
+      const others = verses.filter((v) => v.id !== target.id);
+      const sameLanguage = others.filter((v) => languageOf(v.translation) === lang);
+      const decoys = sameLanguage.length >= 3 ? sameLanguage : others;
       if (idx % 2 === 0) {
-        const otherRefs = verses
-          .filter((v) => v.id !== target.id)
+        const otherRefs = decoys
           .map((v) => v.reference)
           .sort(() => Math.random() - 0.5)
           .slice(0, 3);
@@ -54,14 +61,14 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
           correctAnswer: target.reference,
           options: [target.reference, ...otherRefs].sort(() => Math.random() - 0.5),
           verseReference: target.reference,
+          lang,
         };
       }
 
       const words = target.text.split(' ');
       const cutPoint = Math.max(3, Math.floor(words.length * 0.6));
       const endingPart = words.slice(cutPoint).join(' ');
-      const distractors = verses
-        .filter((v) => v.id !== target.id)
+      const distractors = decoys
         .map((v) => {
           const dw = v.text.split(' ');
           return dw.slice(Math.max(1, Math.floor(dw.length * 0.5))).join(' ');
@@ -76,6 +83,7 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
         correctAnswer: endingPart,
         options: [endingPart, ...distractors].sort(() => Math.random() - 0.5),
         verseReference: target.reference,
+        lang,
       };
     });
   }, [verses]);
@@ -241,7 +249,9 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
                 </Ring>
               </div>
             </div>
-            <p className="font-scripture text-xl leading-relaxed sm:text-[1.375rem]">“{currentQ.quote}”</p>
+            <p lang={currentQ.lang} className="font-scripture text-xl leading-relaxed sm:text-[1.375rem]">
+              “{currentQ.quote}”
+            </p>
           </article>
 
           <div className="flex flex-col gap-3" role="group" aria-label="Answers">
@@ -279,6 +289,7 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
                     )}
                   </span>
                   <span
+                    lang={currentQ.lang}
                     className={
                       currentQ.type === 'match-ref'
                         ? 'font-display text-lg font-bold'

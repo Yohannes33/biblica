@@ -4,13 +4,16 @@ const isIOS = () =>
   typeof navigator !== 'undefined' &&
   (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
-function pickEnglishVoice(): SpeechSynthesisVoice | undefined {
+const SPEECH_LANG = { en: 'en-US', am: 'am-ET' } as const;
+const LANGUAGE_NAME = { en: 'English', am: 'Amharic' } as const;
+
+function pickVoice(language: 'en' | 'am'): SpeechSynthesisVoice | undefined {
   const voices = window.speechSynthesis.getVoices();
-  const english = voices.filter((v) => v.lang?.toLowerCase().startsWith('en'));
+  const matching = voices.filter((v) => v.lang?.toLowerCase().startsWith(language));
   return (
-    english.find((v) => v.localService && v.default) ||
-    english.find((v) => v.localService) ||
-    english[0]
+    matching.find((v) => v.localService && v.default) ||
+    matching.find((v) => v.localService) ||
+    matching[0]
   );
 }
 
@@ -45,7 +48,7 @@ export function useSpeech() {
   }, [supported]);
 
   const toggle = useCallback(
-    (text: string) => {
+    (text: string, language: 'en' | 'am' = 'en') => {
       if (!supported) return;
       if (isSpeaking) {
         stop();
@@ -53,12 +56,17 @@ export function useSpeech() {
       }
       setError(null);
       const synth = window.speechSynthesis;
+      const voice = pickVoice(language);
+      // An English voice reads Ethiopic script as silence or noise: say so instead.
+      if (!voice && language !== 'en' && synth.getVoices().length > 0) {
+        setError(`This device has no ${LANGUAGE_NAME[language]} voice for reading aloud.`);
+        return;
+      }
       synth.cancel();
       synth.resume(); // Android Chrome can be left paused after a cancel
 
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-US';
-      const voice = pickEnglishVoice();
+      utterance.lang = SPEECH_LANG[language];
       if (voice) utterance.voice = voice;
       utterance.rate = 0.9;
       current.current = utterance;
