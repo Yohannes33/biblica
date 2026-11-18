@@ -62,30 +62,38 @@ export const SupabaseService = {
   signIn: async (email: string, password: string) => {
     const client = getSupabase();
     if (!client) throw new Error('Supabase client is not configured.');
-    return await client.auth.signInWithPassword({ email, password });
+    // supabase-js reports a rejected sign-in (wrong password, network failure)
+    // as a returned `error`, not a thrown one; throw it so callers' catch runs.
+    const { data, error } = await client.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return data;
   },
 
   signUp: async (email: string, password: string, fullName: string) => {
     const client = getSupabase();
     if (!client) throw new Error('Supabase client is not configured.');
-    return await client.auth.signUp({
+    const { data, error } = await client.auth.signUp({
       email,
       password,
       options: {
         data: { full_name: fullName }
       }
     });
+    if (error) throw error;
+    return data;
   },
 
   signInWithGoogle: async () => {
     const client = getSupabase();
     if (!client) throw new Error('Supabase client is not configured.');
-    return await client.auth.signInWithOAuth({
+    const { data, error } = await client.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: window.location.origin,
       },
     });
+    if (error) throw error;
+    return data;
   },
 
   onAuthStateChange: (callback: (user: any) => void) => {
