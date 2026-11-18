@@ -1,4 +1,5 @@
-import { INITIAL_VERSES } from '../data/initialVerses';
+import { curatedVerses, FIRST_VERSE_ID } from '../data/initialVerses';
+import { DEFAULT_TRANSLATION, toTranslation, type Translation } from '../data/translations';
 import type { UserProfile, UserStats, Verse, VerseProgress } from '../types/verse';
 import { MASTERY_DELTA, schedule, type Rating } from './srs';
 
@@ -19,7 +20,7 @@ const DEFAULT_STATS: UserStats = {
   clozeCompleted: 0,
   scramblesCompleted: 0,
   soundEnabled: true,
-  activeVerseId: INITIAL_VERSES[0].id,
+  activeVerseId: FIRST_VERSE_ID,
   selectedCategory: 'All',
   theme: 'light',
 };
@@ -27,34 +28,35 @@ const DEFAULT_STATS: UserStats = {
 const DEFAULT_PROFILE: UserProfile = {
   name: 'Pilgrim',
   email: 'pilgrim@biblica.app',
-  preferredTranslation: 'KJV',
+  preferredTranslation: DEFAULT_TRANSLATION,
   dailyGoalVerses: 3,
   theme: 'light',
   joinedDate: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
 };
 
 export const StorageService = {
-  getVerses: (): Verse[] => {
+  /**
+   * The library in the reader's translation. The saved list keeps the order
+   * and the user's own verses; built-in entries are rebuilt from the bundled
+   * text, so they follow the translation and pick up text corrections.
+   */
+  getVerses: (translation: Translation): Verse[] => {
+    const curated = curatedVerses(translation);
+    let stored: Verse[] = [];
     try {
-      const stored = localStorage.getItem(STORAGE_KEYS.VERSES);
-      if (stored) {
-        const verses: Verse[] = JSON.parse(stored);
-        // A saved library is a snapshot; append built-in verses added since
-        // (built-ins can't be deleted, so a missing id is always a new one).
-        const have = new Set(verses.map((v) => v.id));
-        const added = INITIAL_VERSES.filter((v) => !have.has(v.id));
-        if (added.length) {
-          const merged = [...verses, ...added];
-          localStorage.setItem(STORAGE_KEYS.VERSES, JSON.stringify(merged));
-          return merged;
-        }
-        return verses;
-      }
+      const raw = localStorage.getItem(STORAGE_KEYS.VERSES);
+      const parsed = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(parsed)) stored = parsed;
     } catch (e) {
       console.error('Failed to read verses from localStorage', e);
     }
-    localStorage.setItem(STORAGE_KEYS.VERSES, JSON.stringify(INITIAL_VERSES));
-    return INITIAL_VERSES;
+    const builtIn = new Map(curated.map((v) => [v.id, v]));
+    const verses = stored.flatMap((v) => (v.isCustom ? [v] : builtIn.has(v.id) ? [builtIn.get(v.id)!] : []));
+    // Built-ins can't be deleted, so one missing from the saved list is new.
+    const have = new Set(verses.map((v) => v.id));
+    verses.push(...curated.filter((v) => !have.has(v.id)));
+    StorageService.saveVerses(verses);
+    return verses;
   },
 
   saveVerses: (verses: Verse[]): void => {
@@ -65,8 +67,8 @@ export const StorageService = {
     }
   },
 
-  addCustomVerse: (newVerse: Omit<Verse, 'id' | 'isCustom'>): Verse => {
-    const verses = StorageService.getVerses();
+  addCustomVerse: (newVerse: Omit<Verse, 'id' | 'isCustom'>, translation: Translation): Verse => {
+    const verses = StorageService.getVerses(translation);
     const id = `custom-${Date.now()}`;
     const verse: Verse = {
       ...newVerse,
@@ -198,7 +200,8 @@ export const StorageService = {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.PROFILE);
       if (stored) {
-        return JSON.parse(stored);
+        const profile: UserProfile = JSON.parse(stored);
+        return { ...profile, preferredTranslation: toTranslation(profile.preferredTranslation) };
       }
     } catch (e) {
       console.error('Failed to read profile', e);

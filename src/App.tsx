@@ -41,8 +41,6 @@ export function App() {
 
   // Initial data load
   useEffect(() => {
-    const loadedVerses = StorageService.getVerses();
-    setVerses(loadedVerses);
     const loadedStats = StorageService.getStats();
     setStats(loadedStats);
     // Give everyone a generated avatar; the seed is random and stays on device.
@@ -52,6 +50,8 @@ export function App() {
       StorageService.saveProfile(loadedProfile);
     }
     setProfile(loadedProfile);
+    const loadedVerses = StorageService.getVerses(loadedProfile.preferredTranslation);
+    setVerses(loadedVerses);
     setProgressMap(StorageService.getProgressMap());
 
     if (loadedVerses.length > 0) {
@@ -202,8 +202,8 @@ export function App() {
   };
 
   const handleAddCustomVerse = (newVerse: Omit<Verse, 'id' | 'isCustom'>) => {
-    const created = StorageService.addCustomVerse(newVerse);
-    setVerses(StorageService.getVerses());
+    const created = StorageService.addCustomVerse(newVerse, profile.preferredTranslation);
+    setVerses(StorageService.getVerses(profile.preferredTranslation));
     selectVerseId(created.id);
   };
 
@@ -220,6 +220,10 @@ export function App() {
   const handleUpdateProfile = (updated: UserProfile) => {
     setProfile(updated);
     StorageService.saveProfile(updated);
+    // Built-in verses are worded in the default translation.
+    if (updated.preferredTranslation !== profile.preferredTranslation) {
+      setVerses(StorageService.getVerses(updated.preferredTranslation));
+    }
   };
 
   const handleDataSynced = (
@@ -336,6 +340,7 @@ export function App() {
         activeVerseId={activeVerseId}
         progressMap={progressMap}
         onSelectVerse={(verse) => selectVerseId(verse.id)}
+        defaultTranslation={profile.preferredTranslation}
         onAddVerse={handleAddCustomVerse}
         onDeleteCustomVerse={handleDeleteCustomVerse}
       />

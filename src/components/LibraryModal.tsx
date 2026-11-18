@@ -1,6 +1,8 @@
-import React, { useState, useMemo } from 'react';
-import { Search, Plus, Check, Trash2, X } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { Search, Plus, Check, Trash2, X, RotateCw } from 'lucide-react';
 import type { Verse, VerseCategory, VerseProgress, Translation } from '../types/verse';
+import { TRANSLATIONS } from '../data/translations';
+import { formatReference, getPassage, parseReference } from '../lib/bible';
 import { Sheet } from './ui/Sheet';
 
 interface LibraryModalProps {
@@ -10,6 +12,7 @@ interface LibraryModalProps {
   activeVerseId: string;
   progressMap: Record<string, VerseProgress>;
   onSelectVerse: (verse: Verse) => void;
+  defaultTranslation: Translation;
   onAddVerse: (verse: Omit<Verse, 'id' | 'isCustom'>) => void;
   onDeleteCustomVerse?: (verseId: string) => void;
 }
@@ -39,6 +42,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   activeVerseId,
   progressMap,
   onSelectVerse,
+  defaultTranslation,
   onAddVerse,
   onDeleteCustomVerse,
 }) => {
@@ -48,9 +52,57 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const [customRef, setCustomRef] = useState('');
-  const [customText, setCustomText] = useState('');
   const [customCategory, setCustomCategory] = useState<VerseCategory>('Custom');
-  const [customTranslation, setCustomTranslation] = useState<Translation>('KJV');
+  const [customTranslation, setCustomTranslation] = useState<Translation>(defaultTranslation);
+  const [retryCount, setRetryCount] = useState(0);
+  // The result is tagged with the lookup it answers, so a reply for an
+  // earlier reference or translation never shows under the current one.
+  const [lookup, setLookup] = useState<{ key: string; text?: string; error?: string; offline?: boolean } | null>(null);
+  // Hold back "No book called “R”" until the reader pauses, so a half-typed
+  // reference isn't flagged (or announced) on every keystroke.
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(typingTimer.current), []);
+
+  // Each time the library opens, the add form starts in the default
+  // translation, which may have changed in settings while it was closed.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) setCustomTranslation(defaultTranslation);
+  }
+
+  const parsed = useMemo(() => (customRef.trim() ? parseReference(customRef) : null), [customRef]);
+  const passageRef = parsed?.ok ? parsed.ref : null;
+  const reference = passageRef ? formatReference(passageRef) : '';
+  const lookupKey = passageRef ? `${customTranslation} ${reference} ${retryCount}` : '';
+
+  useEffect(() => {
+    if (!passageRef) return;
+    let cancelled = false;
+    // Wait for typing to settle before fetching a book.
+    const timer = window.setTimeout(() => {
+      getPassage(customTranslation, passageRef).then(
+        (result) => {
+          if (!cancelled) setLookup(result.ok ? { key: lookupKey, text: result.text } : { key: lookupKey, error: result.error });
+        },
+        () => {
+          if (!cancelled) setLookup({ key: lookupKey, offline: true });
+        }
+      );
+    }, 250);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+    // lookupKey covers passageRef and the translation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lookupKey]);
+
+  const current = lookup?.key === lookupKey ? lookup : null;
+  const isDuplicate =
+    !!reference && verses.some((v) => v.reference === reference && v.translation === customTranslation);
+  const canSave = !!current?.text && !isDuplicate;
 
   const filteredVerses = useMemo(() => {
     const q = searchQuery.toLowerCase();
@@ -67,28 +119,55 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
 
   const handleCreateVerse = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customRef.trim() || !customText.trim()) return;
-
-    const parts = customRef.trim().split(' ');
-    const book = parts.slice(0, -1).join(' ') || 'Scripture';
-    const chAndV = parts[parts.length - 1] || '1:1';
-    const [ch, num] = chAndV.split(':');
+    if (!passageRef || !current?.text || isDuplicate) return;
+    const { book, chapter, start, end } = passageRef;
 
     onAddVerse({
-      reference: customRef.trim(),
-      book,
-      chapter: parseInt(ch) || 1,
-      verseNum: num || '1',
-      text: customText.trim(),
+      reference,
+      book: book.name,
+      chapter,
+      verseNum: end > start ? `${start}-${end}` : String(start),
+      text: current.text,
       category: customCategory,
       translation: customTranslation,
       tags: ['custom'],
     });
 
     setCustomRef('');
-    setCustomText('');
+    setLookup(null);
     setIsAddingNew(false);
   };
+
+  let preview: React.ReactNode;
+  if (!parsed || (!parsed.ok && isTyping)) {
+    preview = <p className="text-sm text-ink-3">Any verse from Genesis to Revelation, up to 10 in a row.</p>;
+  } else if (!parsed.ok) {
+    preview = <p className="text-sm font-semibold text-danger-ink">{parsed.error}</p>;
+  } else if (!current) {
+    preview = <p className="text-sm text-ink-3">Looking up {reference}…</p>;
+  } else if (current.offline) {
+    preview = (
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <p className="text-sm font-semibold text-danger-ink">Couldn’t load {passageRef!.book.name}. Check your connection.</p>
+        <button type="button" className="btn btn-sm btn-secondary" onClick={() => setRetryCount((n) => n + 1)}>
+          <RotateCw className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+          Try again
+        </button>
+      </div>
+    );
+  } else if (current.error) {
+    preview = <p className="text-sm font-semibold text-danger-ink">{current.error}</p>;
+  } else {
+    preview = (
+      <figure className="rounded-xl bg-surface-2 p-3">
+        <figcaption className="mb-1 font-display text-sm font-extrabold text-ink-2">
+          {reference} · {customTranslation}
+        </figcaption>
+        <blockquote className="font-scripture leading-relaxed text-ink">{current.text}</blockquote>
+        {isDuplicate && <p className="mt-2 text-sm font-semibold text-ink-2">Already in your library.</p>}
+      </figure>
+    );
+  }
 
   return (
     <Sheet
@@ -99,7 +178,11 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
       headerAction={
         <button
           type="button"
-          onClick={() => setIsAddingNew(!isAddingNew)}
+          onClick={() => {
+            // Each new verse starts in the reader's default translation.
+            if (!isAddingNew) setCustomTranslation(defaultTranslation);
+            setIsAddingNew(!isAddingNew);
+          }}
           className={`btn btn-sm ${isAddingNew ? 'btn-secondary' : 'btn-primary'}`}
           aria-expanded={isAddingNew}
         >
@@ -109,53 +192,61 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
       }
     >
       {isAddingNew && (
-        <form onSubmit={handleCreateVerse} className="card animate-rise mb-5 flex flex-col gap-3 p-4" aria-label="Add your own verse">
-          <h3 className="font-display text-lg font-extrabold">Add your own verse</h3>
+        <form onSubmit={handleCreateVerse} className="card animate-rise mb-5 flex flex-col gap-3 p-4" aria-label="Add a verse">
+          <h3 className="font-display text-lg font-extrabold">Add a verse</h3>
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-semibold text-ink-2">Reference</span>
             <input
               type="text"
               placeholder="e.g. Romans 12:2"
               value={customRef}
-              onChange={(e) => setCustomRef(e.target.value)}
-              required
+              onChange={(e) => {
+                setCustomRef(e.target.value);
+                setIsTyping(true);
+                window.clearTimeout(typingTimer.current);
+                typingTimer.current = window.setTimeout(() => setIsTyping(false), 800);
+              }}
+              autoComplete="off"
+              autoCapitalize="words"
+              spellCheck={false}
+              aria-describedby="add-verse-preview"
               className="field"
             />
           </label>
-          <div className="grid grid-cols-[7rem_1fr] gap-3">
-            <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-semibold text-ink-2">Translation</span>
-              <select value={customTranslation} onChange={(e) => setCustomTranslation(e.target.value as Translation)} className="field">
-                <option value="KJV">KJV</option>
-                <option value="NIV">NIV</option>
-                <option value="ESV">ESV</option>
-                <option value="NLT">NLT</option>
-              </select>
-            </label>
-            <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-semibold text-ink-2">Category</span>
-              <select value={customCategory} onChange={(e) => setCustomCategory(e.target.value as VerseCategory)} className="field">
-                {CATEGORIES.filter((c) => c !== 'All').map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </label>
+          <fieldset className="flex flex-col gap-1.5">
+            <legend className="mb-1.5 text-sm font-semibold text-ink-2">Translation</legend>
+            <div className="grid grid-cols-3 gap-2">
+              {TRANSLATIONS.map(({ id, name }) => (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={customTranslation === id}
+                  aria-label={`${id}, ${name}`}
+                  onClick={() => setCustomTranslation(id)}
+                  className={`min-h-11 rounded-xl font-display font-extrabold transition-colors ${
+                    customTranslation === id ? 'bg-ink text-canvas' : 'bg-surface text-ink-2 ring-1 ring-line hover:bg-surface-2'
+                  }`}
+                >
+                  {id}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          <div id="add-verse-preview" aria-live="polite" className="min-h-6">
+            {preview}
           </div>
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-semibold text-ink-2">Verse text</span>
-            <textarea
-              placeholder="Type or paste the verse"
-              rows={3}
-              value={customText}
-              onChange={(e) => setCustomText(e.target.value)}
-              required
-              className="field font-scripture text-[1.0625rem] leading-relaxed"
-            />
+            <span className="text-sm font-semibold text-ink-2">Category</span>
+            <select value={customCategory} onChange={(e) => setCustomCategory(e.target.value as VerseCategory)} className="field">
+              {CATEGORIES.filter((c) => c !== 'All').map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
           </label>
-          <button type="submit" className="btn btn-primary mt-1">
-            Save verse
+          <button type="submit" className="btn btn-primary mt-1" disabled={!canSave}>
+            Add to library
           </button>
         </form>
       )}

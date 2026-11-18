@@ -1,4 +1,6 @@
-export type Translation = 'NIV' | 'ESV' | 'KJV' | 'NLT';
+import type { Translation } from '../data/translations';
+
+export type { Translation };
 
 export type VerseCategory = 
   | 'Essential Classics'
@@ -18,7 +20,8 @@ export interface Verse {
   verseNum: string;
   text: string;
   category: VerseCategory;
-  translation: Translation;
+  // A Translation id. Verses typed in by hand on older builds may say NIV, ESV…
+  translation: string;
   tags?: string[];
   isCustom?: boolean;
 }

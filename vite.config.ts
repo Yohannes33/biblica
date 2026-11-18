@@ -11,6 +11,22 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png'],
+      workbox: {
+        // Bible text is not precached (13 MB). Each book is cached the first
+        // time it's opened and then works offline; the files are versioned
+        // (/bible/v1/…), so a cached copy never goes stale.
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/bible/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'bible-text',
+              expiration: { maxEntries: 300 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+        ],
+      },
       manifest: {
         name: 'Biblica - Bible Verse Memorization',
         short_name: 'Biblica',
