@@ -8,6 +8,7 @@ import { TriviaQuizMode } from './components/modes/TriviaQuizMode';
 import { LibraryModal } from './components/LibraryModal';
 import { AccountModal } from './components/AccountModal';
 import { StatsView } from './components/StatsView';
+import { InstallPrompt } from './components/InstallPrompt';
 import { Onboarding, type FirstVerse } from './components/Onboarding';
 import type { PickedPassage } from './components/BibleBrowser';
 import { StorageService } from './utils/storage';
@@ -31,6 +32,7 @@ export function App() {
   const [progressMap, setProgressMap] = useState<Record<string, VerseProgress>>({});
   const [currentTab, setCurrentTab] = useState<AppTab>('cloze');
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [libraryView, setLibraryView] = useState<'mine' | 'bible'>();
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [needsOnboarding, setNeedsOnboarding] = useState(() => StorageService.needsOnboarding(StorageService.getProfile()));
@@ -134,6 +136,26 @@ export function App() {
         subscription?.unsubscribe?.();
       };
     }
+  }, []);
+
+  // Home-screen shortcuts (manifest `shortcuts` in vite.config.ts) open
+  // /?tab=flashcards or /?open=bible. A first run goes through onboarding instead.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    const open = params.get('open');
+    if (!tab && !open) return;
+    window.history.replaceState(null, '', window.location.pathname);
+    if (needsOnboarding) return;
+    if (tab === 'cloze' || tab === 'flashcards' || tab === 'scramble' || tab === 'trivia' || tab === 'account') {
+      setCurrentTab(tab);
+    }
+    if (open === 'bible') {
+      setLibraryView('bible');
+      setIsLibraryOpen(true);
+    }
+    // Only the URL the app was opened with counts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Each tab is its own screen: start it at the top.
@@ -341,6 +363,7 @@ export function App() {
       />
 
       <main id="main" className="pb-tabbar flex flex-1 flex-col">
+        <InstallPrompt />
         {currentTab === 'cloze' && (
           <FillBlankMode
             verse={activeVerse}
@@ -403,7 +426,11 @@ export function App() {
 
       <LibraryModal
         isOpen={isLibraryOpen}
-        onClose={() => setIsLibraryOpen(false)}
+        openView={libraryView}
+        onClose={() => {
+          setIsLibraryOpen(false);
+          setLibraryView(undefined);
+        }}
         verses={verses}
         activeVerseId={activeVerse.id}
         progressMap={progressMap}

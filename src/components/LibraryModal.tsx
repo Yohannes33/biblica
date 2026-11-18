@@ -18,6 +18,8 @@ interface LibraryModalProps {
   onAddVerse: (verse: Omit<Verse, 'id' | 'isCustom'>) => void;
   onDeleteCustomVerse?: (verseId: string) => void;
   onPickPassage: (passage: PickedPassage) => void;
+  /** Open on this view (the "Read the Bible" home-screen shortcut); otherwise the last one shown. */
+  openView?: 'mine' | 'bible';
 }
 
 const CATEGORIES: ('All' | VerseCategory)[] = [
@@ -49,12 +51,15 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   onAddVerse,
   onDeleteCustomVerse,
   onPickPassage,
+  openView,
 }) => {
   const t = useT();
   // A category's name; one saved by an older build without a string shows as it is.
   const categoryName = (c: 'All' | VerseCategory) => translateCategory(t.lang, c);
   // The reader's saved verses, or the whole Bible in their default translation.
-  const [view, setView] = useState<'mine' | 'bible'>('mine');
+  // openView applies when the sheet opens, including when it mounts already open
+  // (a shortcut opens it while the app is still loading).
+  const [view, setView] = useState<'mine' | 'bible'>(openView ?? 'mine');
   const showView = (next: 'mine' | 'bible') => {
     setView(next);
     if (next === 'bible') setIsAddingNew(false);
@@ -83,6 +88,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   if (isOpen !== wasOpen) {
     setWasOpen(isOpen);
     if (isOpen) setCustomTranslation(defaultTranslation);
+    if (isOpen && openView) setView(openView);
   }
 
   const parsed = useMemo(() => (customRef.trim() ? parseReference(customRef, t.lang) : null), [customRef, t.lang]);
