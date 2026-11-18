@@ -8,13 +8,15 @@ import { TriviaQuizMode } from './components/modes/TriviaQuizMode';
 import { LibraryModal } from './components/LibraryModal';
 import { AccountModal } from './components/AccountModal';
 import { StatsView } from './components/StatsView';
+import { Onboarding, type FirstVerse } from './components/Onboarding';
+import type { PickedPassage } from './components/BibleBrowser';
 import { StorageService } from './utils/storage';
 import { SupabaseService } from './lib/supabase';
 import { newAvatarSeed } from './utils/avatar';
 import { buildReviewQueue, mergeProgress, startOfDay } from './utils/srs';
 
 const LAST_USER_KEY = 'biblica_last_user';
-import type { AppTab, UserProfile, UserStats, Verse, VerseProgress } from './types/verse';
+import type { AppTab, Translation, UserProfile, UserStats, Verse, VerseProgress } from './types/verse';
 
 // Matches the top bar (--surface in index.css) so Android's status bar blends into it.
 const THEME_COLOR = { light: '#ffffff', dark: '#151a16' } as const;
@@ -29,6 +31,7 @@ export function App() {
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [needsOnboarding, setNeedsOnboarding] = useState(() => StorageService.needsOnboarding(StorageService.getProfile()));
 
   // Apply theme class to <html> and keep the browser chrome colour in step.
   useEffect(() => {
@@ -201,10 +204,47 @@ export function App() {
     selectVerseId(otherVerses[Math.floor(Math.random() * otherVerses.length)].id);
   };
 
-  const handleAddCustomVerse = (newVerse: Omit<Verse, 'id' | 'isCustom'>) => {
-    const created = StorageService.addCustomVerse(newVerse, profile.preferredTranslation);
-    setVerses(StorageService.getVerses(profile.preferredTranslation));
+  const handleAddCustomVerse = (newVerse: Omit<Verse, 'id' | 'isCustom'>, translation = profile.preferredTranslation) => {
+    const created = StorageService.addCustomVerse(newVerse, translation);
+    setVerses(StorageService.getVerses(translation));
     selectVerseId(created.id);
+  };
+
+  /** Practise a passage picked in the Bible, reusing the library's copy if it has one. */
+  const handlePickPassage = (passage: PickedPassage, translation = profile.preferredTranslation) => {
+    const library = StorageService.getVerses(translation);
+    const existing = library.find((v) => v.reference === passage.reference && v.translation === passage.translation);
+    if (existing) {
+      setVerses(library);
+      selectVerseId(existing.id);
+      return;
+    }
+    const { book, chapter, start, end } = passage.ref;
+    handleAddCustomVerse(
+      {
+        reference: passage.reference,
+        book: book.name,
+        chapter,
+        verseNum: end > start ? `${start}-${end}` : String(start),
+        text: passage.text,
+        category: 'Custom',
+        translation: passage.translation,
+        tags: ['custom'],
+      },
+      translation
+    );
+  };
+
+  const finishOnboarding = (translation: Translation, first?: FirstVerse) => {
+    const updated = { ...profile, preferredTranslation: translation, onboarded: true };
+    setProfile(updated);
+    StorageService.saveProfile(updated);
+    setVerses(StorageService.getVerses(translation));
+    if (first?.kind === 'builtIn') selectVerseId(first.id);
+    else if (first?.kind === 'passage') handlePickPassage(first.passage, translation);
+    setCurrentTab('cloze');
+    setNeedsOnboarding(false);
+    window.scrollTo({ top: 0 });
   };
 
   const handleDeleteCustomVerse = (verseId: string) => {
@@ -244,6 +284,23 @@ export function App() {
       // storage unavailable (private mode); in-memory state still updated
     }
   };
+
+  if (needsOnboarding) {
+    return (
+      <Onboarding
+        initialTranslation={profile.preferredTranslation}
+        onFinish={finishOnboarding}
+        onSignIn={
+          SupabaseService.isConfigured()
+            ? (translation) => {
+                finishOnboarding(translation);
+                setIsAccountOpen(true);
+              }
+            : undefined
+        }
+      />
+    );
+  }
 
   if (!activeVerse) {
     return (
@@ -341,7 +398,8 @@ export function App() {
         progressMap={progressMap}
         onSelectVerse={(verse) => selectVerseId(verse.id)}
         defaultTranslation={profile.preferredTranslation}
-        onAddVerse={handleAddCustomVerse}
+        onAddVerse={(v) => handleAddCustomVerse(v)}
+        onPickPassage={(p) => handlePickPassage(p)}
         onDeleteCustomVerse={handleDeleteCustomVerse}
       />
 

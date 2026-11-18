@@ -70,8 +70,9 @@ export const Sheet: React.FC<SheetProps> = ({ open, onClose, title, subtitle, he
           </button>
         </div>
       </header>
-      {/* flex-auto (content basis) + min-h-0, not flex-1's 0% basis, which WebKit can collapse to zero */}
-      <div className="min-h-0 flex-auto overflow-y-auto overscroll-contain px-5 pb-[calc(1.5rem+var(--safe-bottom))]">
+      {/* flex-auto (content basis) + min-h-0, not flex-1's 0% basis, which WebKit can collapse to zero.
+          --scroll-pad-bottom lets a sticky footer inside reach the sheet's bottom edge. */}
+      <div className="min-h-0 flex-auto overflow-y-auto overscroll-contain px-5 pb-(--scroll-pad-bottom) [--scroll-pad-bottom:calc(1.5rem+var(--safe-bottom))]">
         {children}
       </div>
     </dialog>
