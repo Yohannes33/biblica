@@ -43,6 +43,12 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
   const lang = languageOf(verse.translation);
   const blankIndices = useMemo(() => getBlankIndicesForLevel(analyzedTokens, level), [analyzedTokens, level]);
 
+  // Start every new verse back at Stage 1 (Key words), while preserving the
+  // current stage if only the translation wording (`verse.text`) changes.
+  useEffect(() => {
+    setLevel(1);
+  }, [verse.id]);
+
   useEffect(() => {
     setCurrentBlankIdx(0);
     setFilledWords({});

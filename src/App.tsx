@@ -366,6 +366,7 @@ export function App() {
         <InstallPrompt />
         {currentTab === 'cloze' && (
           <FillBlankMode
+            key={activeVerse.id}
             verse={activeVerse}
             progress={progressMap[activeVerse.id]}
             soundEnabled={stats.soundEnabled}
