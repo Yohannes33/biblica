@@ -17,6 +17,9 @@ export interface CuratedVerse {
     | 'Wisdom & Guidance'
     | 'Hope & Comfort';
   tags: string[];
+  // Only in libraries of this language: a stand-in for built-in verses that
+  // language's Bible lacks (the Amharic one has no Old Testament).
+  language?: 'am';
 }
 
 export const CURATED_VERSES: CuratedVerse[] = [
@@ -51,4 +54,22 @@ export const CURATED_VERSES: CuratedVerse[] = [
   { id: 'jer-29-11', book: 'JER', chapter: 29, verses: '11', category: 'Hope & Comfort', tags: ['hope', 'future'] },
   { id: 'lam-3-22-23', book: 'LAM', chapter: 3, verses: '22-23', category: 'Hope & Comfort', tags: ['mercy', 'faithfulness'] },
   { id: 'psalm-34-8', book: 'PSA', chapter: 34, verses: '8', category: 'Hope & Comfort', tags: ['goodness', 'trust'] },
+
+  // Amharic stand-ins, one per verse above the Amharic New Testament can't
+  // supply (Old Testament, or text lost in our copy), in the same category.
+  { id: 'john-1-1', book: 'JHN', chapter: 1, verses: '1', category: 'Essential Classics', tags: ['word', 'beginning'], language: 'am' },
+  { id: 'rom-6-23', book: 'ROM', chapter: 6, verses: '23', category: 'Essential Classics', tags: ['salvation', 'gift'], language: 'am' },
+  { id: 'john-14-1', book: 'JHN', chapter: 14, verses: '1', category: 'Peace & Anxiety', tags: ['peace', 'trust'], language: 'am' },
+  { id: 'matt-7-7', book: 'MAT', chapter: 7, verses: '7', category: 'Wisdom & Guidance', tags: ['prayer', 'seeking'], language: 'am' },
+  { id: 'james-1-22', book: 'JAS', chapter: 1, verses: '22', category: 'Wisdom & Guidance', tags: ['word', 'obedience'], language: 'am' },
+  { id: 'john-8-32', book: 'JHN', chapter: 8, verses: '32', category: 'Wisdom & Guidance', tags: ['truth', 'freedom'], language: 'am' },
+  { id: '2tim-1-7', book: '2TI', chapter: 1, verses: '7', category: 'Strength & Courage', tags: ['fear', 'power'], language: 'am' },
+  { id: 'eph-6-10', book: 'EPH', chapter: 6, verses: '10', category: 'Strength & Courage', tags: ['strength'], language: 'am' },
+  { id: '1cor-16-13', book: '1CO', chapter: 16, verses: '13', category: 'Strength & Courage', tags: ['courage', 'faith'], language: 'am' },
+  { id: 'rom-8-31', book: 'ROM', chapter: 8, verses: '31', category: 'Strength & Courage', tags: ['confidence'], language: 'am' },
+  { id: 'rom-8-37', book: 'ROM', chapter: 8, verses: '37', category: 'Strength & Courage', tags: ['victory', 'love'], language: 'am' },
+  { id: 'rom-5-8', book: 'ROM', chapter: 5, verses: '8', category: 'Faith & Salvation', tags: ['grace', 'love'], language: 'am' },
+  { id: 'rom-15-13', book: 'ROM', chapter: 15, verses: '13', category: 'Hope & Comfort', tags: ['hope', 'joy'], language: 'am' },
+  { id: 'rev-21-4', book: 'REV', chapter: 21, verses: '4', category: 'Hope & Comfort', tags: ['comfort', 'future'], language: 'am' },
+  { id: 'matt-5-4', book: 'MAT', chapter: 5, verses: '4', category: 'Hope & Comfort', tags: ['comfort', 'grief'], language: 'am' },
 ];

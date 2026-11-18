@@ -1,4 +1,5 @@
 import type { Verse, VerseProgress } from '../types/verse';
+import { CURATED_VERSES } from '../data/curatedVerses';
 
 /**
  * Spaced repetition, SM-2 style (the scheme Anki grew from). Each rating sets
@@ -66,6 +67,8 @@ export const isNewCard = (p: VerseProgress | undefined) => p?.srsDue === undefin
 export const isDue = (p: VerseProgress | undefined, now = Date.now()) =>
   p?.srsDue !== undefined && p.srsDue <= endOfToday(now);
 
+const CURATED_IDS = CURATED_VERSES.map((v) => v.id);
+
 /**
  * Today's review queue: cards already due (oldest first), then new cards up
  * to the daily goal, minus new cards already started today.
@@ -80,8 +83,13 @@ export function buildReviewQueue(
     .filter((v) => isDue(progress[v.id], now))
     .sort((a, b) => (progress[a.id].srsDue ?? 0) - (progress[b.id].srsDue ?? 0));
   const today = startOfDay(now);
-  // Only count verses still in the library (a deleted custom verse keeps its progress row).
-  const startedToday = verses.filter((v) => (progress[v.id]?.srsIntroduced ?? 0) >= today).length;
+  // Count verses still in the library (a deleted custom verse keeps its progress
+  // row) plus built-ins of other translations, so switching Bible mid-day
+  // doesn't hand out a second day's worth of new cards.
+  const counted = new Set([...verses.map((v) => v.id), ...CURATED_IDS]);
+  const startedToday = Object.entries(progress).filter(
+    ([id, p]) => counted.has(id) && (p?.srsIntroduced ?? 0) >= today
+  ).length;
   const newLimit = Math.max(0, dailyNew - startedToday);
   const fresh = verses.filter((v) => isNewCard(progress[v.id])).slice(0, newLimit);
   return { ids: [...due.map((v) => v.id), ...fresh.map((v) => v.id)], dueCount: due.length, newCount: fresh.length };
