@@ -53,6 +53,8 @@ export interface UserProfile {
   dailyGoalVerses: number;
   theme: 'light' | 'dark';
   joinedDate: string;
+  // False until the first-run setup is done. Absent on profiles saved before it existed.
+  onboarded?: boolean;
 }
 
 export interface UserStats {

@@ -32,6 +32,7 @@ const DEFAULT_PROFILE: UserProfile = {
   dailyGoalVerses: 3,
   theme: 'light',
   joinedDate: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+  onboarded: false,
 };
 
 export const StorageService = {
@@ -208,6 +209,19 @@ export const StorageService = {
     }
     StorageService.saveProfile(DEFAULT_PROFILE);
     return DEFAULT_PROFILE;
+  },
+
+  /** Show first-run setup? Profiles saved before it existed get it only if nothing was ever practised. */
+  needsOnboarding: (profile: UserProfile): boolean => {
+    if (profile.onboarded !== undefined) return !profile.onboarded;
+    let hasCustom = false;
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.VERSES) || '[]');
+      hasCustom = Array.isArray(saved) && saved.some((v) => v?.isCustom);
+    } catch {
+      // unreadable list: treat as empty
+    }
+    return Object.keys(StorageService.getProgressMap()).length === 0 && !StorageService.getStats().xp && !hasCustom;
   },
 
   saveProfile: (profile: UserProfile): void => {
