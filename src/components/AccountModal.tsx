@@ -108,14 +108,13 @@ export const AccountModal: React.FC<AccountModalProps> = ({
         await SupabaseService.signUp(authEmail, authPassword, name);
         setStatusMessage(t('settings.accountCreated'));
       } else {
-        await SupabaseService.signIn(authEmail, authPassword);
+        const { user } = await SupabaseService.signIn(authEmail, authPassword);
         setStatusMessage(t('settings.signedIn'));
-        const u = await SupabaseService.getCurrentUser();
-        setCurrentUserEmail(u?.email || null);
+        setCurrentUserEmail(user?.email || null);
         handleSyncCloud();
       }
     } catch (err) {
-      setStatusMessage(serverMessage(err) ?? t('settings.signInFailed'));
+      setStatusMessage(serverMessage(err) ?? t(isSignUp ? 'settings.signUpFailed' : 'settings.signInFailed'));
     } finally {
       setAuthLoading(false);
     }
