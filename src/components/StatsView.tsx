@@ -4,6 +4,7 @@ import { Flame, Award, Zap, CheckCircle2, BookOpen, Layers, Trophy, Lock, Settin
 import { getLevelProgress, getLevelTitle } from '../utils/level';
 import { ProgressBar, Ring } from './ui/Progress';
 import { Avatar } from './ui/Avatar';
+import { displayName, useT } from '../i18n';
 
 interface StatsViewProps {
   stats: UserStats;
@@ -21,25 +22,26 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats, profile, isSignedIn
   const masteredCount = progressValues.filter((p) => p.masteryScore >= 80).length;
   const learningCount = progressValues.filter((p) => p.masteryScore > 0 && p.masteryScore < 80).length;
   const level = getLevelProgress(stats.xp, stats.level);
+  const t = useT();
 
   const badges = [
-    { title: 'First Flame', desc: 'Keep a 1-day streak', unlocked: stats.streakDays >= 1, icon: Flame, tone: 'bg-flame text-white' },
-    { title: 'Verse Scribe', desc: 'Master your first verse', unlocked: masteredCount >= 1, icon: CheckCircle2, tone: 'bg-brand text-on-brand' },
-    { title: 'Word Master', desc: 'Finish 5 fill-in stages', unlocked: (stats.clozeCompleted || 0) >= 5, icon: Zap, tone: 'bg-teal text-white' },
-    { title: 'Rising Star', desc: 'Reach level 3', unlocked: stats.level >= 3, icon: Award, tone: 'bg-gold text-[oklch(0.3_0.06_70)]' },
+    { title: t('stats.badge.firstFlame'), desc: t('stats.badge.firstFlameDesc'), unlocked: stats.streakDays >= 1, icon: Flame, tone: 'bg-flame text-white' },
+    { title: t('stats.badge.verseScribe'), desc: t('stats.badge.verseScribeDesc'), unlocked: masteredCount >= 1, icon: CheckCircle2, tone: 'bg-brand text-on-brand' },
+    { title: t('stats.badge.wordMaster'), desc: t('stats.badge.wordMasterDesc'), unlocked: (stats.clozeCompleted || 0) >= 5, icon: Zap, tone: 'bg-teal text-white' },
+    { title: t('stats.badge.risingStar'), desc: t('stats.badge.risingStarDesc'), unlocked: stats.level >= 3, icon: Award, tone: 'bg-gold text-[oklch(0.3_0.06_70)]' },
   ];
   const unlockedCount = badges.filter((b) => b.unlocked).length;
 
   const rows = [
-    { label: 'Cards to review today', value: cardsDue, icon: CalendarClock, chip: 'bg-danger-soft text-danger-ink' },
-    { label: 'Day streak', value: stats.streakDays, icon: Flame, chip: 'bg-flame-soft text-flame-ink' },
-    { label: 'Verses mastered', value: masteredCount, icon: CheckCircle2, chip: 'bg-brand-soft text-brand-ink' },
-    { label: 'Still learning', value: learningCount, icon: Sprout, chip: 'bg-teal-soft text-teal-ink' },
-    { label: 'Verses in library', value: verses.length, icon: BookOpen, chip: 'bg-surface-2 text-ink-2' },
-    { label: 'Fill-in stages', value: stats.clozeCompleted || 0, icon: PenLine, chip: 'bg-surface-2 text-ink-2' },
-    { label: 'Scrambles solved', value: stats.scramblesCompleted || 0, icon: Puzzle, chip: 'bg-surface-2 text-ink-2' },
-    { label: 'Cards reviewed', value: stats.cardsReviewed || 0, icon: Layers, chip: 'bg-surface-2 text-ink-2' },
-    { label: 'Trivia rounds', value: stats.quizzesCompleted || 0, icon: Trophy, chip: 'bg-surface-2 text-ink-2' },
+    { label: t('stats.cardsDue'), value: cardsDue, icon: CalendarClock, chip: 'bg-danger-soft text-danger-ink' },
+    { label: t('stats.streak'), value: stats.streakDays, icon: Flame, chip: 'bg-flame-soft text-flame-ink' },
+    { label: t('stats.mastered'), value: masteredCount, icon: CheckCircle2, chip: 'bg-brand-soft text-brand-ink' },
+    { label: t('stats.learning'), value: learningCount, icon: Sprout, chip: 'bg-teal-soft text-teal-ink' },
+    { label: t('stats.inLibrary'), value: verses.length, icon: BookOpen, chip: 'bg-surface-2 text-ink-2' },
+    { label: t('stats.cloze'), value: stats.clozeCompleted || 0, icon: PenLine, chip: 'bg-surface-2 text-ink-2' },
+    { label: t('stats.scrambles'), value: stats.scramblesCompleted || 0, icon: Puzzle, chip: 'bg-surface-2 text-ink-2' },
+    { label: t('stats.cardsReviewed'), value: stats.cardsReviewed || 0, icon: Layers, chip: 'bg-surface-2 text-ink-2' },
+    { label: t('stats.trivia'), value: stats.quizzesCompleted || 0, icon: Trophy, chip: 'bg-surface-2 text-ink-2' },
   ];
 
   return (
@@ -49,12 +51,12 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats, profile, isSignedIn
         <div className="flex items-center gap-3">
           <Avatar seed={profile.avatarSeed || 'biblica'} size={56} />
           <div className="min-w-0 flex-1">
-            <h2 className="truncate font-display text-xl font-extrabold">{profile.name}</h2>
-            <p className="truncate text-sm text-ink-3">{getLevelTitle(stats.level)}</p>
+            <h2 className="truncate font-display text-xl font-extrabold">{displayName(profile.name, t.lang)}</h2>
+            <p className="truncate text-sm text-ink-3">{getLevelTitle(stats.level, t.lang)}</p>
           </div>
           <button type="button" onClick={onOpenSettings} className="btn btn-sm btn-secondary">
             <Settings className="h-[18px] w-[18px]" strokeWidth={2.25} />
-            Settings
+            {t('stats.settings')}
           </button>
         </div>
 
@@ -68,26 +70,28 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats, profile, isSignedIn
               <Cloud className="h-5 w-5" strokeWidth={2.25} aria-hidden="true" />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block font-display font-extrabold">Save your streak</span>
-              <span className="block text-sm text-ink-3">Sign in to sync across devices</span>
+              <span className="block font-display font-extrabold">{t('stats.saveStreak')}</span>
+              <span className="block text-sm text-ink-3">{t('stats.saveStreakHint')}</span>
             </span>
-            <span className="font-display text-sm font-extrabold text-brand-ink">Sign in</span>
+            <span className="font-display text-sm font-extrabold text-brand-ink">{t('settings.signIn')}</span>
           </button>
         )}
 
         <div className="mt-5 flex items-center gap-4 rounded-2xl bg-gold-soft p-4">
           <Ring value={level.percent} size={72} stroke={7} tone="gold">
             <span className="flex flex-col items-center leading-none">
-              <span className="text-[0.6875rem] font-bold text-gold-ink">LEVEL</span>
+              <span className="text-[0.6875rem] font-bold text-gold-ink">{t('stats.levelBadge')}</span>
               <span className="font-display text-2xl font-extrabold tabular-nums">{stats.level}</span>
             </span>
           </Ring>
           <div className="min-w-0 flex-1">
-            <p className="font-display text-lg font-extrabold tabular-nums">{stats.xp.toLocaleString()} XP</p>
+            <p className="font-display text-lg font-extrabold tabular-nums">{t('stats.xp', { xp: stats.xp.toLocaleString() })}</p>
             <p className="text-sm text-ink-2">
-              <span className="font-semibold tabular-nums">{level.toNext}</span> XP to level {stats.level + 1}
+              {t('stats.toNextBefore', { level: stats.level + 1 })}
+              <span className="font-semibold tabular-nums">{level.toNext}</span>
+              {t('stats.toNextAfter', { level: stats.level + 1 })}
             </p>
-            <ProgressBar value={level.percent} tone="gold" label={`Progress to level ${stats.level + 1}`} className="mt-2" />
+            <ProgressBar value={level.percent} tone="gold" label={t('stats.progressToLevel', { level: stats.level + 1 })} className="mt-2" />
           </div>
         </div>
       </section>
@@ -96,10 +100,10 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats, profile, isSignedIn
       <section aria-labelledby="badges-heading">
         <div className="flex items-baseline justify-between">
           <h2 id="badges-heading" className="section-label">
-            Badges
+            {t('stats.badges')}
           </h2>
           <span className="section-label tabular-nums">
-            {unlockedCount} of {badges.length}
+            {t('stats.badgesCount', { unlocked: unlockedCount, total: badges.length })}
           </span>
         </div>
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -121,7 +125,7 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats, profile, isSignedIn
                 </span>
                 <span className="font-display text-[0.9375rem] leading-tight font-extrabold">{b.title}</span>
                 <span className="text-[0.8125rem] leading-snug text-ink-3">
-                  <span className="sr-only">{b.unlocked ? 'Unlocked. ' : 'Locked. '}</span>
+                  <span className="sr-only">{b.unlocked ? t('stats.unlocked') : t('stats.locked')}</span>
                   {b.desc}
                 </span>
               </li>
@@ -133,7 +137,7 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats, profile, isSignedIn
       {/* Stats */}
       <section aria-labelledby="stats-heading">
         <h2 id="stats-heading" className="section-label">
-          Your stats
+          {t('stats.yourStats')}
         </h2>
         <dl className="group-list">
           {rows.map(({ label, value, icon: Icon, chip }) => (

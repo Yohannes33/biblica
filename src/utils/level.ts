@@ -1,3 +1,5 @@
+import { translate, type Lang } from '../i18n';
+
 // Mirrors StorageService.addXP: level = floor(sqrt(xp / 40)) + 1,
 // so level L starts at 40 * (L - 1)^2 XP.
 const xpForLevel = (level: number) => 40 * (level - 1) ** 2;
@@ -15,10 +17,10 @@ export function getLevelProgress(xp: number, level: number) {
   };
 }
 
-export function getLevelTitle(level: number) {
-  if (level >= 10) return 'Theological Scholar';
-  if (level >= 7) return 'Scripture Disciple';
-  if (level >= 5) return 'Faith Memorizer';
-  if (level >= 3) return 'Seeker of Truth';
-  return 'Devoted Pilgrim';
+export function getLevelTitle(level: number, lang: Lang = 'en') {
+  if (level >= 10) return translate(lang, 'level.scholar');
+  if (level >= 7) return translate(lang, 'level.disciple');
+  if (level >= 5) return translate(lang, 'level.memorizer');
+  if (level >= 3) return translate(lang, 'level.seeker');
+  return translate(lang, 'level.pilgrim');
 }

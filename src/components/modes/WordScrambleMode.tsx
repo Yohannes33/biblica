@@ -6,6 +6,7 @@ import { fireCelebrationConfetti } from '../../utils/confetti';
 import { ProgressBar } from '../ui/Progress';
 import { useRevealOnShow } from '../../utils/useRevealOnShow';
 import { languageOf } from '../../data/translations';
+import { useT } from '../../i18n';
 
 interface WordScrambleModeProps {
   verse: Verse;
@@ -37,6 +38,7 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, sound
   const [streak, setStreak] = useState(0);
   const [earnedFlash, setEarnedFlash] = useState(false);
   const completeRef = useRevealOnShow<HTMLElement>(isCompleted);
+  const t = useT();
 
   const words = useMemo(() => verse.text.split(/\s+/).filter(Boolean), [verse.text]);
 
@@ -104,13 +106,13 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, sound
     <div className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-4">
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
-          <h2 className="font-display text-xl font-extrabold tracking-tight">Rebuild the verse</h2>
+          <h2 className="font-display text-xl font-extrabold tracking-tight">{t('scramble.title')}</h2>
           <p className="text-sm text-ink-3" aria-live="polite">
             {isCompleted
-              ? 'Tap the words in order.'
+              ? t('scramble.tapInOrder')
               : hintsLeft >= MAX_HINTS
-                ? 'Tap the words in order.'
-                : `${STREAK_FOR_HINT - streak} in a row earns a hint`}
+                ? t('scramble.tapInOrder')
+                : t('scramble.streakForHint', { n: STREAK_FOR_HINT - streak })}
           </p>
         </div>
         <button
@@ -118,10 +120,10 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, sound
           onClick={takeHint}
           disabled={isCompleted || hintsLeft <= 0 || hintIndex !== null}
           className="btn btn-sm btn-secondary relative"
-          aria-label={`Hint, ${hintsLeft} left`}
+          aria-label={t('scramble.hintLabel', { n: hintsLeft })}
         >
           <Lightbulb className="h-[18px] w-[18px] text-gold-ink" strokeWidth={2.5} />
-          Hint
+          {t('scramble.hint')}
           <span
             className={`grid h-6 min-w-6 place-items-center rounded-full px-1.5 text-[0.8125rem] tabular-nums ${
               hintsLeft > 0 ? 'bg-gold text-[oklch(0.28_0.06_70)]' : 'bg-surface-3 text-ink-3'
@@ -131,7 +133,7 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, sound
             {hintsLeft}
           </span>
         </button>
-        <button type="button" onClick={setupPuzzle} className="icon-btn" aria-label="Shuffle and restart" title="Restart">
+        <button type="button" onClick={setupPuzzle} className="icon-btn" aria-label={t('scramble.restartLabel')} title={t('scramble.restart')}>
           <RotateCcw className="h-5 w-5" />
         </button>
       </div>
@@ -140,25 +142,26 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, sound
       {earnedFlash && (
         <div className="pointer-events-none fixed inset-x-0 top-[calc(var(--safe-top)+4.75rem)] z-40 flex justify-center">
           <p role="status" className="animate-pop rounded-full bg-gold px-4 py-1.5 font-display font-extrabold text-[oklch(0.28_0.06_70)] shadow-lg">
-            +1 hint earned!
+            {t('scramble.hintEarned')}
           </p>
         </div>
       )}
 
       {/* Built sentence */}
-      <article className="card flex min-h-44 flex-col p-5 sm:p-6" aria-label={`${verse.reference}, words placed so far`}>
+      <article className="card flex min-h-44 flex-col p-5 sm:p-6" aria-label={t('scramble.verseLabel', { reference: verse.reference })}>
         <div className="mb-4 flex items-center gap-3">
-          <ProgressBar value={(selectedTiles.length / words.length) * 100} label="Words placed" className="flex-1" />
+          <ProgressBar value={(selectedTiles.length / words.length) * 100} label={t('scramble.wordsPlaced')} className="flex-1" />
           <span className="font-display text-sm font-extrabold text-ink-3 tabular-nums">
             {selectedTiles.length}/{words.length}
           </span>
         </div>
         {selectedTiles.length === 0 ? (
           <p className="my-auto text-center text-ink-3">
-            Start with the first word of{' '}
+            {t('scramble.startBefore')}
             <span lang={languageOf(verse.translation)} className="font-semibold text-ink-2">
               {verse.reference}
             </span>
+            {t('scramble.startAfter')}
           </p>
         ) : (
           <p lang={languageOf(verse.translation)} className="font-scripture text-xl leading-[1.9] sm:text-2xl" aria-live="polite">
@@ -184,22 +187,22 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, sound
             <Award className="h-9 w-9" strokeWidth={2.25} />
           </span>
           <div>
-            <h2 className="font-display text-2xl font-extrabold tracking-tight">Verse rebuilt!</h2>
-            <p className="mt-1 text-ink-2">Every word in the right place.</p>
-            <p className="pill mt-3 bg-gold px-3 text-base text-[oklch(0.28_0.06_70)]">+{SCRAMBLE_XP} XP</p>
+            <h2 className="font-display text-2xl font-extrabold tracking-tight">{t('scramble.rebuilt')}</h2>
+            <p className="mt-1 text-ink-2">{t('scramble.rebuiltBody')}</p>
+            <p className="pill mt-3 bg-gold px-3 text-base text-[oklch(0.28_0.06_70)]">{t('scramble.xp', { n: SCRAMBLE_XP })}</p>
           </div>
           <div className="flex w-full flex-col gap-3 sm:flex-row">
             <button type="button" onClick={onNextVerse} className="btn btn-primary flex-1">
-              Next verse
+              {t('scramble.nextVerse')}
               <ArrowRight className="h-5 w-5" strokeWidth={2.5} />
             </button>
             <button type="button" onClick={setupPuzzle} className="btn btn-secondary flex-1">
-              Play again
+              {t('scramble.playAgain')}
             </button>
           </div>
         </section>
       ) : (
-        <section aria-label="Scrambled words" className="flex flex-wrap gap-2.5">
+        <section aria-label={t('scramble.words')} className="flex flex-wrap gap-2.5">
           {availableTiles.map((tile) => {
             const isWrong = wrongTileId === tile.id;
             const isHint = hintIndex === tile.originalIndex;

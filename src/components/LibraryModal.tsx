@@ -2,7 +2,8 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, Plus, Check, Trash2, X, RotateCw } from 'lucide-react';
 import type { Verse, VerseCategory, VerseProgress, Translation } from '../types/verse';
 import { languageOf, translationInfo, translationLabel, TRANSLATIONS } from '../data/translations';
-import { formatReference, getPassage, parseReference } from '../lib/bible';
+import { bookNameIn, formatReference, getPassage, parseReference, translationNameIn } from '../lib/bible';
+import { translateCategory, useT, type StringKey } from '../i18n';
 import { Sheet } from './ui/Sheet';
 import { BibleBrowser, type PickedPassage } from './BibleBrowser';
 
@@ -31,10 +32,10 @@ const CATEGORIES: ('All' | VerseCategory)[] = [
   'Custom',
 ];
 
-function masteryOf(score: number) {
-  if (score >= 80) return { label: 'Mastered', cls: 'bg-brand-soft text-brand-ink' };
-  if (score >= 30) return { label: 'Learning', cls: 'bg-teal-soft text-teal-ink' };
-  return { label: 'New', cls: 'bg-surface-2 text-ink-2' };
+function masteryOf(score: number): { label: StringKey; cls: string } {
+  if (score >= 80) return { label: 'mastery.Mastered', cls: 'bg-brand-soft text-brand-ink' };
+  if (score >= 30) return { label: 'mastery.Learning', cls: 'bg-teal-soft text-teal-ink' };
+  return { label: 'mastery.New', cls: 'bg-surface-2 text-ink-2' };
 }
 
 export const LibraryModal: React.FC<LibraryModalProps> = ({
@@ -49,6 +50,9 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   onDeleteCustomVerse,
   onPickPassage,
 }) => {
+  const t = useT();
+  // A category's name; one saved by an older build without a string shows as it is.
+  const categoryName = (c: 'All' | VerseCategory) => translateCategory(t.lang, c);
   // The reader's saved verses, or the whole Bible in their default translation.
   const [view, setView] = useState<'mine' | 'bible'>('mine');
   const showView = (next: 'mine' | 'bible') => {
@@ -81,18 +85,18 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
     if (isOpen) setCustomTranslation(defaultTranslation);
   }
 
-  const parsed = useMemo(() => (customRef.trim() ? parseReference(customRef) : null), [customRef]);
+  const parsed = useMemo(() => (customRef.trim() ? parseReference(customRef, t.lang) : null), [customRef, t.lang]);
   const passageRef = parsed?.ok ? parsed.ref : null;
   const formInfo = translationInfo(customTranslation);
   const reference = passageRef ? formatReference(passageRef, formInfo.language) : '';
-  const lookupKey = passageRef ? `${customTranslation} ${reference} ${retryCount}` : '';
+  const lookupKey = passageRef ? `${customTranslation} ${reference} ${retryCount} ${t.lang}` : '';
 
   useEffect(() => {
     if (!passageRef) return;
     let cancelled = false;
     // Wait for typing to settle before fetching a book.
     const timer = window.setTimeout(() => {
-      getPassage(customTranslation, passageRef).then(
+      getPassage(customTranslation, passageRef, t.lang).then(
         (result) => {
           if (!cancelled) setLookup(result.ok ? { key: lookupKey, text: result.text } : { key: lookupKey, error: result.error });
         },
@@ -105,7 +109,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
       cancelled = true;
       window.clearTimeout(timer);
     };
-    // lookupKey covers passageRef and the translation.
+    // lookupKey covers passageRef, the translation and the interface language.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lookupKey]);
 
@@ -155,21 +159,23 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
     preview = (
       <p className="text-sm text-ink-3">
         {formInfo.newTestamentOnly
-          ? `Any verse from Matthew to Revelation, up to 10 in a row. Type ዮሐንስ 14:6 or John 14:6.`
-          : 'Any verse from Genesis to Revelation, up to 10 in a row.'}
+          ? t('library.hintNewTestament')
+          : t('library.hintWholeBible')}
       </p>
     );
   } else if (!parsed.ok) {
     preview = <p className="text-sm font-semibold text-danger-ink">{parsed.error}</p>;
   } else if (!current) {
-    preview = <p className="text-sm text-ink-3">Looking up {reference}…</p>;
+    preview = <p className="text-sm text-ink-3">{t('library.lookingUp', { reference })}</p>;
   } else if (current.offline) {
     preview = (
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <p className="text-sm font-semibold text-danger-ink">Couldn’t load {passageRef!.book.name}. Check your connection.</p>
+        <p className="text-sm font-semibold text-danger-ink">
+          {t('library.loadFailed', { book: bookNameIn(passageRef!.book, t.lang) })}
+        </p>
         <button type="button" className="btn btn-sm btn-secondary" onClick={() => setRetryCount((n) => n + 1)}>
           <RotateCw className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
-          Try again
+          {t('common.tryAgain')}
         </button>
       </div>
     );
@@ -184,7 +190,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
         <blockquote lang={formInfo.language} className="font-scripture leading-relaxed text-ink">
           {current.text}
         </blockquote>
-        {isDuplicate && <p className="mt-2 text-sm font-semibold text-ink-2">Already in your library.</p>}
+        {isDuplicate && <p className="mt-2 text-sm font-semibold text-ink-2">{t('library.alreadyAdded')}</p>}
       </figure>
     );
   }
@@ -193,8 +199,8 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
     <Sheet
       open={isOpen}
       onClose={onClose}
-      title="Library"
-      subtitle={view === 'mine' ? `${verses.length} verses` : translationInfo(defaultTranslation).name}
+      title={t('library.title')}
+      subtitle={view === 'mine' ? t.count('verses', verses.length) : translationNameIn(defaultTranslation, t.lang)}
       headerAction={
         view === 'mine' && (
           <button
@@ -208,17 +214,17 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
             aria-expanded={isAddingNew}
           >
             {isAddingNew ? <X className="h-[18px] w-[18px]" strokeWidth={2.5} /> : <Plus className="h-[18px] w-[18px]" strokeWidth={2.5} />}
-            {isAddingNew ? 'Cancel' : 'Add'}
+            {isAddingNew ? t('common.cancel') : t('library.add')}
           </button>
         )
       }
     >
-      <div className="segmented mb-4" role="group" aria-label="Show">
+      <div className="segmented mb-4" role="group" aria-label={t('library.viewLabel')}>
         <button type="button" aria-pressed={view === 'mine'} onClick={() => showView('mine')}>
-          My verses
+          {t('library.mine')}
         </button>
         <button type="button" aria-pressed={view === 'bible'} onClick={() => showView('bible')}>
-          Bible
+          {t('library.bible')}
         </button>
       </div>
 
@@ -227,7 +233,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
         <BibleBrowser
           key={defaultTranslation}
           translation={defaultTranslation}
-          pickLabel="Memorise"
+          pickLabel={t('library.memorise')}
           hasReference={(ref) => verses.some((v) => v.reference === ref && v.translation === defaultTranslation)}
           onPick={(passage) => {
             onPickPassage(passage);
@@ -239,13 +245,13 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
 
       <div hidden={view !== 'mine'}>
         {isAddingNew && (
-          <form onSubmit={handleCreateVerse} className="card animate-rise mb-5 flex flex-col gap-3 p-4" aria-label="Add a verse">
-            <h3 className="font-display text-lg font-extrabold">Add a verse</h3>
+          <form onSubmit={handleCreateVerse} className="card animate-rise mb-5 flex flex-col gap-3 p-4" aria-label={t('library.addTitle')}>
+            <h3 className="font-display text-lg font-extrabold">{t('library.addTitle')}</h3>
             <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-semibold text-ink-2">Reference</span>
+              <span className="text-sm font-semibold text-ink-2">{t('library.reference')}</span>
               <input
                 type="text"
-                placeholder="e.g. Romans 12:2"
+                placeholder={t('library.referencePlaceholder')}
                 value={customRef}
                 onChange={(e) => {
                   setCustomRef(e.target.value);
@@ -261,9 +267,9 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
               />
             </label>
             <fieldset className="flex flex-col gap-1.5">
-              <legend className="mb-1.5 text-sm font-semibold text-ink-2">Translation</legend>
+              <legend className="mb-1.5 text-sm font-semibold text-ink-2">{t('library.translation')}</legend>
               <div className="grid grid-cols-4 gap-2">
-                {TRANSLATIONS.map(({ id, label, name, language }) => (
+                {TRANSLATIONS.map(({ id, label, language }) => (
                   <button
                     key={id}
                     type="button"
@@ -274,7 +280,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                     }`}
                   >
                     <span lang={language}>{label}</span>
-                    <span className="sr-only">, {name}</span>
+                    <span lang={id === 'AMH' ? t.lang : 'en'} className="sr-only">, {translationNameIn(id, t.lang)}</span>
                   </button>
                 ))}
               </div>
@@ -283,34 +289,34 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
               {preview}
             </div>
             <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-semibold text-ink-2">Category</span>
+              <span className="text-sm font-semibold text-ink-2">{t('library.category')}</span>
               <select value={customCategory} onChange={(e) => setCustomCategory(e.target.value as VerseCategory)} className="field">
                 {CATEGORIES.filter((c) => c !== 'All').map((c) => (
                   <option key={c} value={c}>
-                    {c}
+                    {categoryName(c)}
                   </option>
                 ))}
               </select>
             </label>
             <button type="submit" className="btn btn-primary mt-1" disabled={!canSave}>
-              Add to library
+              {t('library.addToLibrary')}
             </button>
           </form>
         )}
 
         <div className="sticky top-0 z-10 -mx-5 bg-canvas px-5 pb-3">
           <label className="relative block">
-            <span className="sr-only">Search verses</span>
+            <span className="sr-only">{t('library.searchLabel')}</span>
             <Search className="pointer-events-none absolute top-1/2 left-3.5 h-5 w-5 -translate-y-1/2 text-ink-3" aria-hidden="true" />
             <input
               type="search"
-              placeholder="Search reference or words"
+              placeholder={t('library.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="field pl-11"
             />
           </label>
-          <div className="no-scrollbar -mx-5 mt-3 flex gap-2 overflow-x-auto px-5" role="group" aria-label="Filter by category">
+          <div className="no-scrollbar -mx-5 mt-3 flex gap-2 overflow-x-auto px-5" role="group" aria-label={t('library.filterLabel')}>
             {CATEGORIES.map((cat) => {
               const active = selectedCategory === cat;
               return (
@@ -323,7 +329,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                     active ? 'bg-ink text-canvas' : 'bg-surface-2 text-ink-2 hover:bg-surface-3'
                   }`}
                 >
-                  {cat}
+                  {categoryName(cat)}
                 </button>
               );
             })}
@@ -332,11 +338,11 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
 
         {filteredVerses.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-12 text-center">
-            <p className="font-display text-lg font-extrabold">No verses found</p>
+            <p className="font-display text-lg font-extrabold">{t('library.emptyTitle')}</p>
             <p className="max-w-xs text-ink-3">
               {selectedCategory === 'Custom' && !searchQuery
-                ? 'Verses you add yourself will show up here.'
-                : 'Try another word, or clear the filter.'}
+                ? t('library.emptyCustom')
+                : t('library.emptyFiltered')}
             </p>
             {(searchQuery || selectedCategory !== 'All') && (
               <button
@@ -347,7 +353,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                   setSelectedCategory('All');
                 }}
               >
-                Show all verses
+                {t('library.showAll')}
               </button>
             )}
           </div>
@@ -380,7 +386,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                       {isCurrent && (
                         <span className="pill bg-brand py-0.5 text-on-brand">
                           <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />
-                          Practicing
+                          {t('library.practicing')}
                         </span>
                       )}
                     </span>
@@ -389,10 +395,10 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                     </span>
                     <span className="flex items-center gap-2 text-sm text-ink-3">
                       <span className={`pill py-0.5 ${m.cls}`}>
-                        {m.label}
+                        {t(m.label)}
                         {score > 0 && <span className="font-bold opacity-80">{score}%</span>}
                       </span>
-                      <span className="truncate">{verse.category}</span>
+                      <span className="truncate">{categoryName(verse.category)}</span>
                     </span>
                   </button>
                   {verse.isCustom && onDeleteCustomVerse &&
@@ -407,16 +413,16 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                         }}
                         onBlur={() => setConfirmDeleteId(null)}
                         className="mt-3 mr-3 min-h-11 shrink-0 rounded-xl bg-danger px-3 font-display text-sm font-extrabold text-[var(--on-danger)]"
-                        aria-label={`Confirm delete ${verse.reference}`}
+                        aria-label={t('library.confirmDelete', { reference: verse.reference })}
                       >
-                        Delete
+                        {t('library.delete')}
                       </button>
                     ) : (
                       <button
                         type="button"
                         onClick={() => setConfirmDeleteId(verse.id)}
                         className="icon-btn mt-3 mr-3 bg-transparent text-ink-3 hover:!bg-danger-soft hover:!text-danger-ink"
-                        aria-label={`Delete ${verse.reference}`}
+                        aria-label={t('library.deleteVerse', { reference: verse.reference })}
                       >
                         <Trash2 className="h-5 w-5" />
                       </button>

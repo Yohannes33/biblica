@@ -14,6 +14,8 @@ import { StorageService } from './utils/storage';
 import { SupabaseService } from './lib/supabase';
 import { newAvatarSeed } from './utils/avatar';
 import { buildReviewQueue, mergeProgress, startOfDay } from './utils/srs';
+import { LanguageProvider, translate } from './i18n';
+import { languageOf } from './data/translations';
 
 const LAST_USER_KEY = 'biblica_last_user';
 import type { AppTab, Translation, UserProfile, UserStats, Verse, VerseProgress } from './types/verse';
@@ -32,6 +34,12 @@ export function App() {
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [needsOnboarding, setNeedsOnboarding] = useState(() => StorageService.needsOnboarding(StorageService.getProfile()));
+
+  // The interface speaks the language of the reader's Bible.
+  const uiLang = languageOf(profile.preferredTranslation);
+  useEffect(() => {
+    document.documentElement.lang = uiLang;
+  }, [uiLang]);
 
   // Apply theme class to <html> and keep the browser chrome colour in step.
   useEffect(() => {
@@ -308,25 +316,25 @@ export function App() {
   if (!activeVerse) {
     return (
       <div className="grid min-h-dvh place-items-center bg-canvas font-display text-lg font-extrabold text-ink-3">
-        Opening Biblica…
+        {translate(uiLang, 'app.opening')}
       </div>
     );
   }
 
-  return (
+  const app = (
     <div className="flex min-h-dvh flex-col bg-canvas text-ink">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-xl focus:bg-surface focus:px-4 focus:py-2"
       >
-        Skip to content
+        {translate(uiLang, 'app.skipToContent')}
       </a>
 
       <Navbar
         stats={stats}
         verse={activeVerse}
         avatarSeed={profile.avatarSeed || 'biblica'}
-        title={currentTab === 'account' ? 'Your progress' : undefined}
+        title={currentTab === 'account' ? translate(uiLang, 'app.yourProgress') : undefined}
         onOpenLibrary={() => setIsLibraryOpen(true)}
         onShuffle={handleRandomVerse}
         onOpenProfile={() => setIsAccountOpen(true)}
@@ -422,6 +430,8 @@ export function App() {
       <BottomNav currentTab={currentTab} onSelectTab={setCurrentTab} badges={{ flashcards: cardsDue }} />
     </div>
   );
+
+  return <LanguageProvider value={uiLang}>{app}</LanguageProvider>;
 }
 
 export default App;

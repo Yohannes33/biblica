@@ -5,6 +5,7 @@ import { languageOf, translationLabel } from '../data/translations';
 import { getLevelProgress } from '../utils/level';
 import { Ring } from './ui/Progress';
 import { Avatar } from './ui/Avatar';
+import { translateCategory, useT } from '../i18n';
 
 interface NavbarProps {
   stats: UserStats;
@@ -18,6 +19,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ stats, verse, avatarSeed, title, onOpenLibrary, onShuffle, onOpenProfile }) => {
   const level = getLevelProgress(stats.xp, stats.level);
+  const t = useT();
 
   return (
     <header className="material-bar sticky top-0 z-30 pt-safe shadow-[inset_0_-0.5px_0_var(--line-strong)]">
@@ -30,7 +32,7 @@ export const Navbar: React.FC<NavbarProps> = ({ stats, verse, avatarSeed, title,
               type="button"
               onClick={onOpenLibrary}
               className="-ml-1.5 flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl py-1.5 pr-2 pl-1.5 text-left transition-colors hover:bg-surface-2"
-              aria-label={`Current verse ${verse.reference}. Open library`}
+              aria-label={t('nav.currentVerse', { reference: verse.reference })}
             >
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand text-on-brand">
                 <BookOpen className="h-5 w-5" strokeWidth={2.25} />
@@ -42,12 +44,13 @@ export const Navbar: React.FC<NavbarProps> = ({ stats, verse, avatarSeed, title,
                   </span>
                   <ChevronDown className="h-4 w-4 shrink-0 text-ink-3" strokeWidth={2.5} />
                 </span>
+                {/* A category saved by an older build without a string shows as it is. */}
                 <span className="block truncate text-[0.8125rem] leading-tight text-ink-3">
-                  <span lang={languageOf(verse.translation)}>{translationLabel(verse.translation)}</span> · {verse.category}
+                  <span lang={languageOf(verse.translation)}>{translationLabel(verse.translation)}</span> · {translateCategory(t.lang, verse.category)}
                 </span>
               </span>
             </button>
-            <button type="button" onClick={onShuffle} className="icon-btn" aria-label="Random verse" title="Random verse">
+            <button type="button" onClick={onShuffle} className="icon-btn" aria-label={t('nav.randomVerse')} title={t('nav.randomVerse')}>
               <Shuffle className="h-5 w-5" />
             </button>
           </>
@@ -56,8 +59,8 @@ export const Navbar: React.FC<NavbarProps> = ({ stats, verse, avatarSeed, title,
         <span
           role="img"
           className="pill h-10 bg-flame-soft px-3 text-[0.9375rem] text-flame-ink"
-          aria-label={`${stats.streakDays} day streak`}
-          title={`${stats.streakDays} day streak`}
+          aria-label={t.count('nav.streak', stats.streakDays)}
+          title={t.count('nav.streak', stats.streakDays)}
         >
           <Flame className="h-[18px] w-[18px] fill-flame text-flame" aria-hidden="true" />
           <span aria-hidden="true">{stats.streakDays}</span>
@@ -68,7 +71,7 @@ export const Navbar: React.FC<NavbarProps> = ({ stats, verse, avatarSeed, title,
           type="button"
           onClick={onOpenProfile}
           className="relative rounded-full transition-transform active:scale-95"
-          aria-label={`Profile and settings. Level ${stats.level}, ${level.toNext} XP to level ${stats.level + 1}`}
+          aria-label={t('nav.profile', { level: stats.level, toNext: level.toNext, next: stats.level + 1 })}
         >
           <Ring value={level.percent} size={44} stroke={3} tone="gold">
             <Avatar seed={avatarSeed} size={34} />

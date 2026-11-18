@@ -2,7 +2,16 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, RotateCw, Search } from 'lucide-react';
 import { BIBLE_BOOKS, isNewTestament, referenceBookName, type BibleBook } from '../data/bibleBooks';
 import { translationInfo, type Translation } from '../data/translations';
-import { formatReference, loadBook, MAX_PASSAGE_VERSES, type PassageRef } from '../lib/bible';
+import {
+  bookNameIn,
+  formatReference,
+  loadBook,
+  MAX_PASSAGE_VERSES,
+  translationNameIn,
+  translationShortNameIn,
+  type PassageRef,
+} from '../lib/bible';
+import { useT, type StringKey } from '../i18n';
 
 export interface PickedPassage {
   ref: PassageRef;
@@ -23,12 +32,20 @@ interface BibleBrowserProps {
 type Chapter = (string | null)[];
 type Load = { key: string; verses?: Chapter; failed?: boolean };
 
+/** Fill a translated sentence's {placeholders} with elements: "Loading {name}…" + { name: <span/> }. */
+function fill(text: string, parts: Record<string, React.ReactNode>): React.ReactNode {
+  return text.split(/\{(\w+)\}/).map((piece, i) => (i % 2 ? <React.Fragment key={i}>{parts[piece]}</React.Fragment> : piece));
+}
+
 /**
  * Read the whole Bible: book, then chapter, then tap a verse (and optionally a
  * later one, for a passage of up to MAX_PASSAGE_VERSES) to pick it.
  */
 export const BibleBrowser: React.FC<BibleBrowserProps> = ({ translation, onPick, pickLabel, hasReference }) => {
+  const t = useT();
   const info = translationInfo(translation);
+  // The Bible's language, for book names and verse text. The interface
+  // language (t.lang) can differ: an English Bible under an Amharic interface.
   const lang = info.language;
   const [book, setBook] = useState<BibleBook | null>(null);
   const [chapter, setChapter] = useState(1);
@@ -93,11 +110,11 @@ export const BibleBrowser: React.FC<BibleBrowserProps> = ({ translation, onPick,
     const listed = BIBLE_BOOKS.filter((b) => available(b) && match(b));
     return [
       {
-        title: 'Old Testament',
+        title: 'browser.oldTestament' as StringKey,
         books: listed.filter((b) => !isNewTestament(b)),
       },
       {
-        title: 'New Testament',
+        title: 'browser.newTestament' as StringKey,
         books: listed.filter((b) => isNewTestament(b)),
       },
     ].filter((g) => g.books.length > 0);
@@ -132,11 +149,11 @@ export const BibleBrowser: React.FC<BibleBrowserProps> = ({ translation, onPick,
         const missing = selection.start + gap;
         setNote(
           verses[missing - 1] === ''
-            ? `The ${translation} leaves out verse ${missing}, so a passage can’t run across it. Started again at verse ${n}.`
-            : `Verse ${missing} isn’t available, so a passage can’t run across it. Started again at verse ${n}.`
+            ? t('browser.noteOmitted', { translation: translationShortNameIn(translation, t.lang), missing, n })
+            : t('browser.noteLost', { missing, n })
         );
       } else if (n - selection.start >= MAX_PASSAGE_VERSES) {
-        setNote(`A passage can be up to ${MAX_PASSAGE_VERSES} verses. Started again at verse ${n}.`);
+        setNote(t('browser.noteMax', { max: MAX_PASSAGE_VERSES, n }));
       } else {
         return setSelection({ start: selection.start, end: n });
       }
@@ -148,14 +165,14 @@ export const BibleBrowser: React.FC<BibleBrowserProps> = ({ translation, onPick,
     return (
       <div ref={top} tabIndex={-1} className="flex scroll-mt-4 flex-col gap-4 outline-none">
         <label className="relative block">
-          <span className="sr-only">Find a book</span>
+          <span className="sr-only">{t('browser.findBook')}</span>
           <Search
             className="pointer-events-none absolute top-1/2 left-3.5 h-5 w-5 -translate-y-1/2 text-ink-3"
             aria-hidden="true"
           />
           <input
             type="search"
-            placeholder="Find a book"
+            placeholder={t('browser.findBook')}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="field pl-11"
@@ -163,12 +180,12 @@ export const BibleBrowser: React.FC<BibleBrowserProps> = ({ translation, onPick,
           />
         </label>
         {info.newTestamentOnly && (
-          <p className="text-sm text-ink-3">Only the New Testament of the {info.name} is available so far.</p>
+          <p className="text-sm text-ink-3">{t('bible.newTestamentOnly', { name: translationNameIn(translation, t.lang) })}</p>
         )}
-        {groups.length === 0 && <p className="py-6 text-center text-ink-3">No book matches “{filter.trim()}”.</p>}
+        {groups.length === 0 && <p className="py-6 text-center text-ink-3">{t('browser.noMatch', { filter: filter.trim() })}</p>}
         {groups.map((g) => (
           <section key={g.title}>
-            <h3 className="section-label">{g.title}</h3>
+            <h3 className="section-label">{t(g.title)}</h3>
             <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {g.books.map((b) => (
                 <li key={b.code}>
@@ -193,25 +210,25 @@ export const BibleBrowser: React.FC<BibleBrowserProps> = ({ translation, onPick,
   const back = (label: string, onClick: () => void) => (
     <button type="button" onClick={onClick} className="btn btn-sm btn-secondary self-start !pl-2.5">
       <ChevronLeft className="h-5 w-5" strokeWidth={2.5} aria-hidden="true" />
-      <span lang={label === 'Books' ? undefined : lang}>{label}</span>
+      <span lang={label === t('browser.books') ? undefined : lang}>{label}</span>
     </button>
   );
 
   if (view === 'chapters') {
     return (
       <div ref={top} tabIndex={-1} className="flex scroll-mt-4 flex-col gap-4 outline-none">
-        {back('Books', () => setView('books'))}
+        {back(t('browser.books'), () => setView('books'))}
         <h3 ref={headingRef} tabIndex={-1} lang={lang} className="font-display text-xl font-extrabold outline-none">
           {bookName(book)}
         </h3>
-        <ul className="grid grid-cols-5 gap-2 sm:grid-cols-8" aria-label="Chapters">
+        <ul className="grid grid-cols-5 gap-2 sm:grid-cols-8" aria-label={t('browser.chapters')}>
           {Array.from({ length: book.chapters }, (_, i) => i + 1).map((n) => (
             <li key={n}>
               <button
                 type="button"
                 onClick={() => openChapter(n)}
                 className="grid min-h-12 w-full place-items-center rounded-xl bg-surface font-display font-extrabold ring-1 ring-line transition-colors hover:bg-surface-2"
-                aria-label={`Chapter ${n}`}
+                aria-label={t('browser.chapter', { n })}
               >
                 {n}
               </button>
@@ -231,31 +248,31 @@ export const BibleBrowser: React.FC<BibleBrowserProps> = ({ translation, onPick,
 
   return (
     <div ref={top} tabIndex={-1} className="flex scroll-mt-4 flex-col gap-4 outline-none">
-      {back(book.chapters === 1 ? 'Books' : bookName(book), () => setView(book.chapters === 1 ? 'books' : 'chapters'))}
+      {back(book.chapters === 1 ? t('browser.books') : bookName(book), () => setView(book.chapters === 1 ? 'books' : 'chapters'))}
       <h3 ref={headingRef} tabIndex={-1} lang={lang} className="font-display text-xl font-extrabold outline-none">
         {heading}
       </h3>
 
       {!current ? (
         <p className="text-ink-3" role="status">
-          Loading <span lang={lang}>{heading}</span>…
+          {fill(t('browser.loading'), { name: <span lang={lang}>{heading}</span> })}
         </p>
       ) : current.failed ? (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2" role="alert">
           <p className="font-semibold text-danger-ink">
-            Couldn’t load <span lang={lang}>{bookName(book)}</span>. Check your connection.
+            {fill(t('library.loadFailed'), { book: <span lang={lang}>{bookName(book)}</span> })}
           </p>
           <button type="button" className="btn btn-sm btn-secondary" onClick={() => setRetry((n) => n + 1)}>
             <RotateCw className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
-            Try again
+            {t('common.tryAgain')}
           </button>
         </div>
       ) : (
         <>
           <p className="text-sm text-ink-3">
-            Tap a verse to memorise it. Tap a later one to take up to {MAX_PASSAGE_VERSES} in a row.
+            {t('browser.instructions', { max: MAX_PASSAGE_VERSES })}
           </p>
-          <ol className="group-list" aria-label={`Verses of ${book.name} ${chapter}`}>
+          <ol className="group-list" aria-label={t('browser.versesOf', { book: bookNameIn(book, t.lang), chapter })}>
             {verses!.map((text, i) => {
               const n = i + 1;
               // "" = this translation leaves the verse out (later manuscripts only).
@@ -279,7 +296,7 @@ export const BibleBrowser: React.FC<BibleBrowserProps> = ({ translation, onPick,
                     </span>
                     {text === null ? (
                       <span className="text-sm text-ink-3 italic">
-                        Not available yet: our digital copy lost this verse.
+                        {t('browser.lostVerse')}
                       </span>
                     ) : (
                       <span lang={lang} className="font-scripture leading-relaxed text-ink">
@@ -293,7 +310,7 @@ export const BibleBrowser: React.FC<BibleBrowserProps> = ({ translation, onPick,
           </ol>
 
           {book.chapters > 1 && (
-            <nav className="flex justify-between gap-2" aria-label="Chapters">
+            <nav className="flex justify-between gap-2" aria-label={t('browser.chapters')}>
               {chapter > 1 ? (
                 <button
                   type="button"
@@ -301,7 +318,7 @@ export const BibleBrowser: React.FC<BibleBrowserProps> = ({ translation, onPick,
                   onClick={() => openChapter(chapter - 1)}
                 >
                   <ChevronLeft className="h-5 w-5" strokeWidth={2.5} aria-hidden="true" />
-                  Chapter {chapter - 1}
+                  {t('browser.chapter', { n: chapter - 1 })}
                 </button>
               ) : (
                 <span />
@@ -312,7 +329,7 @@ export const BibleBrowser: React.FC<BibleBrowserProps> = ({ translation, onPick,
                   className="btn btn-sm btn-secondary !pr-2.5"
                   onClick={() => openChapter(chapter + 1)}
                 >
-                  Chapter {chapter + 1}
+                  {t('browser.chapter', { n: chapter + 1 })}
                   <ChevronRight className="h-5 w-5" strokeWidth={2.5} aria-hidden="true" />
                 </button>
               )}
@@ -345,10 +362,10 @@ export const BibleBrowser: React.FC<BibleBrowserProps> = ({ translation, onPick,
                 }
               >
                 <span>
-                  {pickLabel}: <span lang={lang}>{reference}</span>
+                  {fill(t('browser.pick'), { label: pickLabel, reference: <span lang={lang}>{reference}</span> })}
                 </span>
               </button>
-              {already && <p className="mt-2 text-center text-sm text-ink-3">Already in your library.</p>}
+              {already && <p className="mt-2 text-center text-sm text-ink-3">{t('library.alreadyAdded')}</p>}
               {/* Always present, so screen readers announce the note when it appears. */}
               <p className={`text-center text-sm text-ink-2 ${note ? 'mt-2' : ''}`} role="status">
                 {note}

@@ -8,6 +8,7 @@ import { useSpeech } from '../../utils/useSpeech';
 import { ProgressBar } from '../ui/Progress';
 import { useRevealOnShow } from '../../utils/useRevealOnShow';
 import { languageOf } from '../../data/translations';
+import { useT, type StringKey } from '../../i18n';
 
 interface FillBlankModeProps {
   verse: Verse;
@@ -19,11 +20,11 @@ interface FillBlankModeProps {
 
 type DifficultyLevel = 1 | 2 | 3 | 4;
 
-const STAGES: { lvl: DifficultyLevel; label: string; hint: string }[] = [
-  { lvl: 1, label: 'Key words', hint: 'A few key words hidden' },
-  { lvl: 2, label: 'Half', hint: 'Half the words hidden' },
-  { lvl: 3, label: 'Most', hint: 'Most words hidden' },
-  { lvl: 4, label: 'All', hint: 'Recite every word' },
+const STAGES: { lvl: DifficultyLevel; label: StringKey; hint: StringKey }[] = [
+  { lvl: 1, label: 'fill.stage.1.label', hint: 'fill.stage.1.hint' },
+  { lvl: 2, label: 'fill.stage.2.label', hint: 'fill.stage.2.hint' },
+  { lvl: 3, label: 'fill.stage.3.label', hint: 'fill.stage.3.hint' },
+  { lvl: 4, label: 'fill.stage.4.label', hint: 'fill.stage.4.hint' },
 ];
 
 const stageXp = (level: DifficultyLevel) => (level === 4 ? 60 : level * 15);
@@ -34,6 +35,7 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
   const [filledWords, setFilledWords] = useState<Record<number, string>>({});
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const [wrongWord, setWrongWord] = useState<string | null>(null);
+  const t = useT();
   const speech = useSpeech();
   const completeRef = useRevealOnShow<HTMLElement>(isCompleted);
 
@@ -126,8 +128,8 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-4">
       {/* Stage picker */}
-      <section aria-label="Difficulty stage">
-        <div className="segmented" role="group" aria-label="Stage">
+      <section aria-label={t('fill.stagePicker')}>
+        <div className="segmented" role="group" aria-label={t('fill.stageGroup')}>
           {STAGES.map((st) => (
             <button
               key={st.lvl}
@@ -137,21 +139,21 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
               className="flex items-center justify-center gap-1"
             >
               {level > st.lvl && <Check className="h-3.5 w-3.5 text-brand-ink" strokeWidth={3} aria-hidden="true" />}
-              {st.label}
+              {t(st.label)}
             </button>
           ))}
         </div>
         <p className="mt-2 px-1 text-sm text-ink-3">
-          <span className="font-display font-extrabold text-ink-2">Stage {level} of 4</span> · {stage.hint}
+          <span className="font-display font-extrabold text-ink-2">{t('fill.stageOf', { level })}</span> · {t(stage.hint)}
         </p>
       </section>
 
       {/* The verse */}
-      <article className="card p-5 sm:p-7" aria-label={`${verse.reference}, fill in the blanks`}>
+      <article className="card p-5 sm:p-7" aria-label={t('fill.verseLabel', { reference: verse.reference })}>
         <div className="mb-4 flex items-center justify-between gap-3">
           <ProgressBar
             value={blankIndices.length ? (filledCount / blankIndices.length) * 100 : 0}
-            label="Blanks filled"
+            label={t('fill.blanksFilled')}
             className="flex-1"
           />
           <span className="font-display text-sm font-extrabold text-ink-3 tabular-nums">
@@ -164,13 +166,13 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
                 onClick={() => speech.toggle(verse.text, lang)}
                 className="icon-btn"
                 aria-pressed={speech.isSpeaking}
-                aria-label={speech.isSpeaking ? 'Stop reading' : 'Read verse aloud'}
-                title={speech.isSpeaking ? 'Stop reading' : 'Read verse aloud'}
+                aria-label={speech.isSpeaking ? t('speech.stop') : t('speech.readAloud')}
+                title={speech.isSpeaking ? t('speech.stop') : t('speech.readAloud')}
               >
                 {speech.isSpeaking ? <Square className="h-4 w-4 fill-current" /> : <Volume2 className="h-5 w-5" />}
               </button>
             )}
-            <button type="button" onClick={handleReset} className="icon-btn" aria-label="Restart stage" title="Restart stage">
+            <button type="button" onClick={handleReset} className="icon-btn" aria-label={t('fill.restart')} title={t('fill.restart')}>
               <RotateCcw className="h-5 w-5" />
             </button>
           </div>
@@ -208,7 +210,7 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
                       : 'border-2 border-dashed border-line-strong text-ink-3'
                   }`}
                 >
-                  <span className="sr-only">{isCurrent ? 'current blank' : 'blank'}</span>
+                  <span className="sr-only">{isCurrent ? t('fill.currentBlank') : t('fill.blank')}</span>
                   <span aria-hidden="true">{'\u00a0'}</span>
                 </span>
                 {token.punctuation}
@@ -237,12 +239,12 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
           </span>
           <div>
             <h2 className="font-display text-2xl font-extrabold tracking-tight">
-              {level === 4 ? 'Verse mastered!' : `Stage ${level} complete!`}
+              {level === 4 ? t('fill.mastered') : t('fill.stageComplete', { level })}
             </h2>
             <p className="mt-1 text-ink-2">
-              {level === 4 ? 'You recited every word from memory.' : 'Ready to hide a few more words?'}
+              {level === 4 ? t('fill.masteredBody') : t('fill.stageCompleteBody')}
             </p>
-            <p className="pill mt-3 bg-gold px-3 text-base text-[oklch(0.28_0.06_70)]">+{stageXp(level)} XP</p>
+            <p className="pill mt-3 bg-gold px-3 text-base text-[oklch(0.28_0.06_70)]">{t('fill.xp', { n: stageXp(level) })}</p>
           </div>
           <div className="flex w-full flex-col gap-3 sm:flex-row">
             <button
@@ -250,20 +252,20 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
               onClick={() => (level < 4 ? setLevel((level + 1) as DifficultyLevel) : handleReset())}
               className="btn btn-primary flex-1"
             >
-              {level < 4 ? 'Next stage' : 'Practice again'}
+              {level < 4 ? t('fill.nextStage') : t('fill.practiceAgain')}
               <ArrowRight className="h-5 w-5" strokeWidth={2.5} />
             </button>
             <button type="button" onClick={onNextVerse} className="btn btn-secondary flex-1">
-              Next verse
+              {t('fill.nextVerse')}
             </button>
           </div>
         </section>
       ) : (
-        <section aria-label="Word choices">
+        <section aria-label={t('fill.wordChoices')}>
           <div className="mb-2.5 flex items-center justify-between px-1">
-            <h2 className="font-display text-base font-extrabold text-ink-2">Pick the missing word</h2>
-            <span className="pill bg-gold-soft text-gold-ink" title="Earned when you finish this stage">
-              +{stageXp(level)} XP<span className="sr-only"> when you finish this stage</span>
+            <h2 className="font-display text-base font-extrabold text-ink-2">{t('fill.pickMissing')}</h2>
+            <span className="pill bg-gold-soft text-gold-ink" title={t('fill.xpTitle')}>
+              {t('fill.xp', { n: stageXp(level) })}<span className="sr-only">{t('fill.xpWhen')}</span>
             </span>
           </div>
           <div className="grid grid-cols-2 gap-3">

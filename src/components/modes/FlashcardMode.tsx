@@ -15,6 +15,7 @@ import {
   nextInterval,
   type Rating,
 } from '../../utils/srs';
+import { translateCategory, useT, type StringKey } from '../../i18n';
 
 interface FlashcardModeProps {
   verses: Verse[];
@@ -27,11 +28,11 @@ interface FlashcardModeProps {
 // How many cards later an "Again" card comes back in the same session.
 const AGAIN_GAP = 3;
 
-const RATINGS: { id: Rating; label: string; xp: number; cls: string }[] = [
-  { id: 'again', label: 'Again', xp: 2, cls: 'bg-danger-soft text-danger-ink [--edge:var(--danger)]' },
-  { id: 'hard', label: 'Hard', xp: 8, cls: 'bg-flame-soft text-flame-ink [--edge:var(--flame)]' },
-  { id: 'good', label: 'Good', xp: 15, cls: 'bg-teal-soft text-teal-ink [--edge:var(--teal)]' },
-  { id: 'easy', label: 'Easy', xp: 25, cls: 'bg-brand-soft text-brand-ink [--edge:var(--brand)]' },
+const RATINGS: { id: Rating; label: StringKey; xp: number; cls: string }[] = [
+  { id: 'again', label: 'cards.rating.again', xp: 2, cls: 'bg-danger-soft text-danger-ink [--edge:var(--danger)]' },
+  { id: 'hard', label: 'cards.rating.hard', xp: 8, cls: 'bg-flame-soft text-flame-ink [--edge:var(--flame)]' },
+  { id: 'good', label: 'cards.rating.good', xp: 15, cls: 'bg-teal-soft text-teal-ink [--edge:var(--teal)]' },
+  { id: 'easy', label: 'cards.rating.easy', xp: 25, cls: 'bg-brand-soft text-brand-ink [--edge:var(--brand)]' },
 ];
 
 export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMap, dailyNew, soundEnabled, onRate }) => {
@@ -44,6 +45,7 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
   const [isFlipped, setIsFlipped] = useState(false);
   const [flipMode, setFlipMode] = useState<'ref-to-text' | 'text-to-ref'>('ref-to-text');
   const [result, setResult] = useState<RecitationResult | null>(null);
+  const t = useT();
   const speech = useSpeech();
   const frontRef = useRef<HTMLDivElement>(null);
   const backRef = useRef<HTMLDivElement>(null);
@@ -178,9 +180,9 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-4">
       <div className="flex items-center gap-2">
-        <div className="segmented flex-1" role="group" aria-label="Deck">
+        <div className="segmented flex-1" role="group" aria-label={t('cards.deck')}>
           <button type="button" aria-pressed={deck === 'review'} onClick={startReview}>
-            Review
+            {t('cards.review')}
           </button>
           <button
             type="button"
@@ -190,7 +192,7 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
               setIsFlipped(false);
             }}
           >
-            All cards
+            {t('cards.allCards')}
           </button>
         </div>
         <button
@@ -201,8 +203,8 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
           }}
           className="icon-btn h-12 w-12"
           aria-pressed={flipMode === 'text-to-ref'}
-          aria-label="Show the verse first, guess the reference"
-          title={flipMode === 'ref-to-text' ? 'Show the verse first' : 'Show the reference first'}
+          aria-label={t('cards.flipModeLabel')}
+          title={flipMode === 'ref-to-text' ? t('cards.verseFirst') : t('cards.referenceFirst')}
         >
           <ArrowLeftRight className="h-5 w-5" />
         </button>
@@ -211,8 +213,8 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
             type="button"
             onClick={() => goTo(Math.floor(Math.random() * verses.length))}
             className="icon-btn h-12 w-12"
-            aria-label="Random card"
-            title="Random card"
+            aria-label={t('cards.random')}
+            title={t('cards.random')}
           >
             <Shuffle className="h-5 w-5" />
           </button>
@@ -222,9 +224,9 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
       <p className="px-1 font-display text-sm font-extrabold text-ink-3 tabular-nums" aria-live="polite">
         {deck === 'review'
           ? currentVerse
-            ? `${remaining} left today${cardIsNew ? ' · new card' : ''}`
-            : `${reviewedCount} reviewed this session`
-          : `Card ${currentIndex + 1} of ${verses.length}`}
+            ? t(cardIsNew ? 'cards.leftTodayNew' : 'cards.leftToday', { n: remaining })
+            : t('cards.reviewedSession', { n: reviewedCount })
+          : t('cards.cardOf', { n: currentIndex + 1, total: verses.length })}
       </p>
 
       {!currentVerse ? (
@@ -234,15 +236,13 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
           </span>
           <div>
             <h2 ref={doneRef} tabIndex={-1} className="font-display text-2xl font-extrabold tracking-tight outline-none">
-              All caught up!
+              {t('cards.caughtUp')}
             </h2>
             <p className="mt-1 max-w-sm text-ink-2">
-              {reviewedCount > 0
-                ? `You reviewed ${reviewedCount} ${reviewedCount === 1 ? 'card' : 'cards'}. `
-                : 'Nothing is due right now. '}
+              {reviewedCount > 0 ? t.count('cards.reviewed', reviewedCount) : t('cards.nothingDue')}
               {nextDue
-                ? `Next review: ${formatDueDate(nextDue.at)} (${nextDue.count} ${nextDue.count === 1 ? 'verse' : 'verses'}).`
-                : 'Rate a few cards and Biblica will schedule them for you.'}
+                ? t.count('cards.nextReview', nextDue.count, { date: formatDueDate(nextDue.at, t.lang) })
+                : t('cards.noSchedule')}
             </p>
           </div>
           <button
@@ -253,9 +253,9 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
             }}
             className="btn btn-secondary w-full sm:w-auto"
           >
-            Practice all cards
+            {t('cards.practiceAll')}
           </button>
-          <p className="text-sm text-ink-3">New cards per day follow your Daily goal in Profile &amp; settings.</p>
+          <p className="text-sm text-ink-3">{t('cards.dailyGoalNote')}</p>
         </section>
       ) : (
         <>
@@ -272,7 +272,7 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
             ref={frontRef}
             tabIndex={-1}
             role="region"
-            aria-label="Card front"
+            aria-label={t('cards.front')}
             aria-hidden={isFlipped}
             onClick={(e) => {
               if (!(e.target as HTMLElement).closest('button') && !recite.isListening) handleFlip();
@@ -281,10 +281,10 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
               isFlipped ? hiddenFace : ''
             }`}
           >
-            <span className="absolute top-5 left-6 text-sm text-ink-3 sm:left-8">{currentVerse.category}</span>
+            <span className="absolute top-5 left-6 text-sm text-ink-3 sm:left-8">{translateCategory(t.lang, currentVerse.category)}</span>
             {deck === 'review' && (
               <span className={`pill absolute top-4 right-5 sm:right-7 ${cardIsNew ? 'bg-teal-soft text-teal-ink' : 'bg-surface-2 text-ink-2'}`}>
-                {cardIsNew ? 'New' : 'Review'}
+                {cardIsNew ? t('cards.new') : t('cards.review')}
               </span>
             )}
             {flipMode === 'ref-to-text' ? (
@@ -297,11 +297,11 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
                 </span>
                 {recite.isListening ? (
                   <span lang={lang} className="mt-5 line-clamp-3 max-w-sm font-scripture text-lg leading-relaxed text-ink-2" aria-live="polite">
-                    {recite.interim || 'Listening…'}
+                    {recite.interim || t('cards.listening')}
                   </span>
                 ) : (
                   <span className="mt-5 max-w-xs text-ink-2">
-                    {canRecite ? 'Recite it out loud and Biblica will check you.' : 'Recite it from memory, then flip to check.'}
+                    {canRecite ? t('cards.reciteAloud') : t('cards.reciteMemory')}
                   </span>
                 )}
                 {canRecite && (
@@ -313,7 +313,7 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
                     className={`btn btn-sm mt-5 ${recite.isListening ? 'btn-primary animate-slot' : 'btn-secondary'}`}
                   >
                     {recite.isListening ? <Square className="h-4 w-4 fill-current" /> : <Mic className="h-[18px] w-[18px]" strokeWidth={2.5} />}
-                    {recite.isListening ? 'Done' : 'Recite'}
+                    {recite.isListening ? t('recite.done') : t('recite.start')}
                   </button>
                 )}
               </>
@@ -322,13 +322,13 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
                 <span lang={lang} className="max-h-48 overflow-y-auto font-scripture text-xl leading-relaxed sm:text-2xl">
                   {currentVerse.text}
                 </span>
-                <span className="mt-6 text-ink-2">Which verse is this?</span>
+                <span className="mt-6 text-ink-2">{t('cards.whichVerse')}</span>
               </>
             )}
             {!recite.isListening && (
               <span className="absolute bottom-5 flex items-center gap-1.5 font-display text-sm font-extrabold text-brand-ink" aria-hidden="true">
                 <RefreshCw className="h-4 w-4" strokeWidth={2.5} />
-                Tap to flip
+                {t('cards.tapToFlip')}
               </span>
             )}
           </div>
@@ -338,7 +338,7 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
             ref={backRef}
             tabIndex={-1}
             role="region"
-            aria-label={`Answer: ${currentVerse.reference}`}
+            aria-label={t('cards.answer', { reference: currentVerse.reference })}
             aria-hidden={!isFlipped}
             onClick={(e) => {
               if (!(e.target as HTMLElement).closest('button')) handleFlip();
@@ -361,7 +361,7 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
                   onClick={() => speech.toggle(currentVerse.text, lang)}
                   className="icon-btn"
                   aria-pressed={speech.isSpeaking}
-                  aria-label={speech.isSpeaking ? 'Stop reading' : 'Read verse aloud'}
+                  aria-label={speech.isSpeaking ? t('speech.stop') : t('speech.readAloud')}
                 >
                   {speech.isSpeaking ? <Square className="h-4 w-4 fill-current" /> : <Volume2 className="h-5 w-5" />}
                 </button>
@@ -381,14 +381,14 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
             <p className="text-center text-sm text-ink-3">
               {result ? (
                 <>
-                  You got{' '}
+                  {t('cards.resultBefore') && `${t('cards.resultBefore')} `}
                   <span className="font-display font-extrabold text-ink tabular-nums">
-                    {result.matched} of {result.total}
+                    {t('cards.resultCount', { matched: result.matched, total: result.total })}
                   </span>{' '}
-                  words. Missed words are underlined.
+                  {t('cards.resultAfter')}
                 </>
               ) : (
-                'How well did you remember it?'
+                t('cards.howWell')
               )}
             </p>
           </div>
@@ -402,7 +402,7 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
       )}
 
       {isFlipped ? (
-        <div className="animate-rise grid grid-cols-4 gap-2" role="group" aria-label="Rate your recall">
+        <div className="animate-rise grid grid-cols-4 gap-2" role="group" aria-label={t('cards.rateRecall')}>
           {RATINGS.map((r) => {
             const suggested = result?.suggested === r.id;
             return (
@@ -413,15 +413,16 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
                 className={`btn relative flex-col gap-0 px-1 ${r.cls} ${suggested ? 'ring-2 ring-current ring-offset-2 ring-offset-canvas' : ''}`}
                 aria-describedby="suggested-rating"
               >
-                <span>{r.label}</span>
+                <span>{t(r.label)}</span>
                 <span className="text-xs font-bold opacity-80">
-                  {formatInterval(nextInterval(progressMap[currentVerse.id], r.id))}
+                  {formatInterval(nextInterval(progressMap[currentVerse.id], r.id), t.lang)}
                 </span>
               </button>
             );
           })}
           <p id="suggested-rating" className="col-span-4 mt-1 text-center text-sm text-ink-3">
-            {result ? 'Suggested from your recitation. ' : ''}Your answer sets when you’ll see this verse again.
+            {result ? t('cards.suggested') : ''}
+            {t('cards.ratingNote')}
           </p>
         </div>
       ) : (
@@ -431,21 +432,21 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
               type="button"
               onClick={goPrev}
               className="btn btn-secondary w-14 px-0"
-              aria-label="Previous card"
+              aria-label={t('cards.previous')}
             >
               <ChevronLeft className="h-6 w-6" strokeWidth={2.5} />
             </button>
           )}
           <button type="button" onClick={handleFlip} className="btn btn-primary flex-1">
-            Flip card
+            {t('cards.flip')}
           </button>
           {deck === 'all' && (
             <button
               type="button"
               onClick={goNext}
               className="btn btn-secondary w-14 px-0"
-              aria-label="Next card"
-              title="Next card"
+              aria-label={t('cards.next')}
+              title={t('cards.next')}
             >
               <ChevronRight className="h-6 w-6" strokeWidth={2.5} />
             </button>

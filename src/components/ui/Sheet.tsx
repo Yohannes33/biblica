@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useRef } from 'react';
 import { X } from 'lucide-react';
+import { useT } from '../../i18n';
 
 interface SheetProps {
   open: boolean;
@@ -20,6 +21,7 @@ export const Sheet: React.FC<SheetProps> = ({ open, onClose, title, subtitle, he
   const ref = useRef<HTMLDialogElement>(null);
   const pressStartedOnBackdrop = useRef(false);
   const titleId = useId();
+  const t = useT();
 
   useEffect(() => {
     const dialog = ref.current;
@@ -65,7 +67,7 @@ export const Sheet: React.FC<SheetProps> = ({ open, onClose, title, subtitle, he
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {headerAction}
-          <button type="button" onClick={close} className="icon-btn rounded-full" aria-label="Close">
+          <button type="button" onClick={close} className="icon-btn rounded-full" aria-label={t('common.close')}>
             <X className="h-5 w-5" />
           </button>
         </div>
