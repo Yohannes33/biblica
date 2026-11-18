@@ -40,7 +40,7 @@ Biblica turns Scripture memorization into an engaging, gamified experience using
 - Curated collection across thematic categories:
   - *Essential Classics*, *Peace & Anxiety*, *Strength & Courage*, *Love & Kindness*, *Faith & Salvation*, *Wisdom & Guidance*, *Hope & Comfort*.
 - **The whole Bible in three translations**: KJV, BSB (Berean Standard Bible) and WEB (World English Bible). The built-in verses follow your default translation.
-- **Amharic New Testament (1962)**: pick አማርኛ to learn verses in Amharic. Old Testament built-in verses stay in KJV.
+- **Amharic New Testament (1962)**: pick አማርኛ to learn verses in Amharic. Every built-in verse is in Amharic: Old Testament ones are swapped for New Testament verses on the same theme.
 - **Add any verse**: type a reference (`Romans 12:1-2`, `1 jn 4:19`, `ps 23:1–3`, `ዮሐንስ 3፡16`) and the text is looked up for you.
 
 ### 6. 🏆 Gamification Engine

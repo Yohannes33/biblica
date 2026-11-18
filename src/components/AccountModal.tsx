@@ -258,9 +258,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
       <Section
         title="Default translation"
-        footer={`${selectedTranslation.name}. ${selectedTranslation.blurb}.${
-          selectedTranslation.newTestamentOnly ? '' : ' The built-in verses use it.'
-        }`}
+        footer={`${selectedTranslation.name}. ${selectedTranslation.blurb}. The built-in verses use it.`}
       >
         <div className="grid grid-cols-4 gap-2" role="group" aria-label="Default translation">
           {TRANSLATIONS.map(({ id, label, name, language }) => (

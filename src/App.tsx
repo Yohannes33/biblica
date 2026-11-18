@@ -194,13 +194,15 @@ export function App() {
 
   const handleNextVerse = () => {
     if (verses.length <= 1) return;
-    const currentIndex = verses.findIndex((v) => v.id === activeVerseId);
+    // activeVerse, not activeVerseId: the saved id can name a verse this
+    // translation's library lacks, which shows as the first verse instead.
+    const currentIndex = verses.findIndex((v) => v.id === activeVerse.id);
     selectVerseId(verses[(currentIndex + 1) % verses.length].id);
   };
 
   const handleRandomVerse = () => {
     if (verses.length <= 1) return;
-    const otherVerses = verses.filter((v) => v.id !== activeVerseId);
+    const otherVerses = verses.filter((v) => v.id !== activeVerse.id);
     selectVerseId(otherVerses[Math.floor(Math.random() * otherVerses.length)].id);
   };
 
@@ -252,7 +254,7 @@ export function App() {
     setVerses(filtered);
     StorageService.saveVerses(filtered);
     // Persist the new active verse too, or a reload would point at the deleted one.
-    if (activeVerseId === verseId && filtered.length > 0) {
+    if (activeVerse?.id === verseId && filtered.length > 0) {
       selectVerseId(filtered[0].id);
     }
   };
@@ -275,9 +277,10 @@ export function App() {
     const mergedProgress = mergeProgress(progressMap, newProgress);
     setStats(newStats);
     setProgressMap(mergedProgress);
-    setVerses(newVerses);
     StorageService.saveStats(newStats);
     StorageService.saveVerses(newVerses);
+    // Re-read so the list takes its usual order now, not at the next reload.
+    setVerses(StorageService.getVerses(profile.preferredTranslation));
     try {
       localStorage.setItem('biblica_progress_v1', JSON.stringify(mergedProgress));
     } catch {
@@ -394,7 +397,7 @@ export function App() {
         isOpen={isLibraryOpen}
         onClose={() => setIsLibraryOpen(false)}
         verses={verses}
-        activeVerseId={activeVerseId}
+        activeVerseId={activeVerse.id}
         progressMap={progressMap}
         onSelectVerse={(verse) => selectVerseId(verse.id)}
         defaultTranslation={profile.preferredTranslation}

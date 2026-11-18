@@ -1,4 +1,5 @@
 import { curatedVerses, FIRST_VERSE_ID } from '../data/initialVerses';
+import { CURATED_VERSES } from '../data/curatedVerses';
 import { DEFAULT_TRANSLATION, toTranslation, type Translation } from '../data/translations';
 import type { UserProfile, UserStats, Verse, VerseProgress } from '../types/verse';
 import { MASTERY_DELTA, schedule, type Rating } from './srs';
@@ -9,6 +10,8 @@ const STORAGE_KEYS = {
   STATS: 'biblica_stats_v1',
   PROFILE: 'biblica_profile_v1',
 };
+
+const STAND_IN_IDS = new Set(CURATED_VERSES.filter((v) => v.language).map((v) => v.id));
 
 const DEFAULT_STATS: UserStats = {
   xp: 0,
@@ -37,9 +40,12 @@ const DEFAULT_PROFILE: UserProfile = {
 
 export const StorageService = {
   /**
-   * The library in the reader's translation. The saved list keeps the order
-   * and the user's own verses; built-in entries are rebuilt from the bundled
-   * text, so they follow the translation and pick up text corrections.
+   * The library in the reader's translation: the user's own verses (newest
+   * first, as saved), then the built-in verses this translation has, rebuilt
+   * from the bundled text so they follow the translation and pick up text
+   * corrections. Nothing reorders verses, so built-ins need no saved order,
+   * and ones a translation lacks (Old Testament in Amharic) simply return
+   * when the reader switches back.
    */
   getVerses: (translation: Translation): Verse[] => {
     const curated = curatedVerses(translation);
@@ -51,11 +57,14 @@ export const StorageService = {
     } catch (e) {
       console.error('Failed to read verses from localStorage', e);
     }
-    const builtIn = new Map(curated.map((v) => [v.id, v]));
-    const verses = stored.flatMap((v) => (v.isCustom ? [v] : builtIn.has(v.id) ? [builtIn.get(v.id)!] : []));
-    // Built-ins can't be deleted, so one missing from the saved list is new.
-    const have = new Set(verses.map((v) => v.id));
-    verses.push(...curated.filter((v) => !have.has(v.id)));
+    const custom = stored.filter((v) => v?.isCustom);
+    // An Amharic stand-in the reader had already added themselves stays theirs,
+    // without a second copy. Only stand-ins: they are new, so no progress is lost.
+    const added = new Set(custom.map((v) => `${v.translation} ${v.reference}`));
+    const verses = [
+      ...custom,
+      ...curated.filter((v) => !(STAND_IN_IDS.has(v.id) && added.has(`${v.translation} ${v.reference}`))),
+    ];
     StorageService.saveVerses(verses);
     return verses;
   },

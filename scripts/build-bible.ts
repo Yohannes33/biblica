@@ -339,14 +339,17 @@ function main() {
       outputs.set(join(outDir, `${meta.code}.json`), JSON.stringify(book));
     }
 
-    // A built-in verse this translation lacks is left out here; the app shows
-    // it in FALLBACK_TRANSLATION instead.
+    // A built-in verse this translation lacks is left out of its library; the
+    // Amharic one has its own stand-ins (language: 'am'), which must have text.
     curated[tr.id] = {};
     for (const cv of CURATED_VERSES) {
+      if (cv.language && cv.language !== tr.language) continue;
       const book = books.get(cv.book);
       const text = book ? verseText(book, cv.chapter, cv.verses) : null;
       if (text) curated[tr.id][cv.id] = text;
-      else if (!tr.newTestamentOnly && !DAMAGED_RANGES.has(tr.id)) throw new Error(`${tr.id}: no text for ${cv.id}`);
+      else if (cv.language || (!tr.newTestamentOnly && !DAMAGED_RANGES.has(tr.id))) {
+        throw new Error(`${tr.id}: no text for ${cv.id}`);
+      }
     }
     console.log(
       `${tr.id}: ${verses} verses, ${missing} absent, ${unavailable} unavailable, ` +

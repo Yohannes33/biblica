@@ -46,7 +46,7 @@ export const TRANSLATIONS = [
     id: 'AMH',
     label: 'አማርኛ',
     name: 'Amharic Bible (1962)',
-    blurb: 'New Testament only; built-in verses it lacks, such as John 3:16, stay in KJV',
+    blurb: 'New Testament only',
     language: 'am',
     newTestamentOnly: true,
     // Free and non-commercial only: commercial use needs the Bible Society of
@@ -60,9 +60,6 @@ export type Translation = (typeof TRANSLATIONS)[number]['id'];
 export type TranslationInfo = (typeof TRANSLATIONS)[number];
 
 export const DEFAULT_TRANSLATION: Translation = 'KJV';
-
-/** Built-in verses a translation lacks (the Old Testament in Amharic) are shown in this one. */
-export const FALLBACK_TRANSLATION: Translation = 'KJV';
 
 /** Bump when the generated text changes, so cached copies are replaced. */
 export const BIBLE_DATA_VERSION = 'v1';
