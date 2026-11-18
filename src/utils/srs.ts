@@ -1,5 +1,6 @@
 import type { Verse, VerseProgress } from '../types/verse';
 import { CURATED_VERSES } from '../data/curatedVerses';
+import { translate, translateCount, type Lang } from '../i18n';
 
 /**
  * Spaced repetition, SM-2 style (the scheme Anki grew from). Each rating sets
@@ -106,19 +107,20 @@ export function nextDueAfterToday(verses: Verse[], progress: Record<string, Vers
   return { at: first, count: dues.filter((d) => d === first).length };
 }
 
-export function formatInterval(days: number) {
-  if (days <= 0) return 'Later today';
-  if (days === 1) return '1 day';
-  if (days < 30) return `${days} days`;
+export function formatInterval(days: number, lang: Lang = 'en') {
+  if (days <= 0) return translate(lang, 'cards.interval.later');
+  if (days < 30) return translateCount(lang, 'cards.interval.days', days);
   const months = Math.round(days / 30);
-  return months <= 1 ? '1 month' : `${months} months`;
+  return translateCount(lang, 'cards.interval.months', Math.max(1, months));
 }
 
-export function formatDueDate(at: number, now = Date.now()) {
+export function formatDueDate(at: number, lang: Lang = 'en', now = Date.now()) {
   const days = Math.round((startOfDay(at) - startOfDay(now)) / 86_400_000);
-  if (days <= 1) return 'tomorrow';
-  if (days < 7) return new Date(at).toLocaleDateString(undefined, { weekday: 'long' });
-  return new Date(at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  if (days <= 1) return translate(lang, 'cards.tomorrow');
+  // English keeps the device's own date format, as before.
+  const locale = lang === 'am' ? 'am-ET' : undefined;
+  if (days < 7) return new Date(at).toLocaleDateString(locale, { weekday: 'long' });
+  return new Date(at).toLocaleDateString(locale, { month: 'short', day: 'numeric' });
 }
 
 const SCHEDULE_KEYS = ['srsDue', 'srsInterval', 'srsEase', 'srsReps', 'srsLapses', 'srsIntroduced'] as const;

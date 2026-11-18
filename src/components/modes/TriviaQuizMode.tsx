@@ -5,6 +5,7 @@ import { playSound } from '../../utils/audio';
 import { fireCelebrationConfetti } from '../../utils/confetti';
 import { Ring } from '../ui/Progress';
 import { languageOf } from '../../data/translations';
+import { useT } from '../../i18n';
 
 interface TriviaQuizModeProps {
   verses: Verse[];
@@ -14,7 +15,6 @@ interface TriviaQuizModeProps {
 
 interface Question {
   type: 'match-ref' | 'complete-verse';
-  ask: string;
   quote: string;
   correctAnswer: string;
   options: string[];
@@ -24,7 +24,6 @@ interface Question {
 
 const QUESTION_COUNT = 5;
 const TIME_LIMIT = 15;
-const LETTERS = ['A', 'B', 'C', 'D'];
 
 export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEnabled, onFinishQuiz }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -36,6 +35,9 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
   const [isGameOver, setIsGameOver] = useState(false);
   const [totalXpEarned, setTotalXpEarned] = useState(0);
   const [results, setResults] = useState<boolean[]>([]);
+  const t = useT();
+  // Answer markers: A–D in English, ሀ ለ ሐ መ in Amharic.
+  const letters = Array.from(t('trivia.letters'));
 
   const generateQuestions = useCallback(() => {
     if (verses.length < 4) return [];
@@ -56,7 +58,6 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
           .slice(0, 3);
         return {
           type: 'match-ref',
-          ask: 'Which verse is this?',
           quote: target.text,
           correctAnswer: target.reference,
           options: [target.reference, ...otherRefs].sort(() => Math.random() - 0.5),
@@ -78,7 +79,6 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
 
       return {
         type: 'complete-verse',
-        ask: `Finish ${target.reference}`,
         quote: `${words.slice(0, cutPoint).join(' ')}…`,
         correctAnswer: endingPart,
         options: [endingPart, ...distractors].sort(() => Math.random() - 0.5),
@@ -171,13 +171,13 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
   if (verses.length < 4) {
     return (
       <div className="mx-auto max-w-xl px-4 pt-10 text-center text-ink-2">
-        Trivia needs at least 4 verses in your library. Add a few more to play.
+        {t('trivia.needVerses')}
       </div>
     );
   }
 
   if (!currentQ && !isGameOver) {
-    return <div className="py-20 text-center text-ink-3">Getting questions ready…</div>;
+    return <div className="py-20 text-center text-ink-3">{t('trivia.preparing')}</div>;
   }
 
   const correctCount = results.filter(Boolean).length;
@@ -187,7 +187,7 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
     <div className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-4">
       {/* Status strip */}
       <div className="flex items-center gap-3">
-        <ol className="flex flex-1 gap-1.5" aria-label={`Question ${Math.min(currentIdx + 1, questions.length)} of ${questions.length}`}>
+        <ol className="flex flex-1 gap-1.5" aria-label={t('trivia.questionOf', { n: Math.min(currentIdx + 1, questions.length), total: questions.length })}>
           {questions.map((_, i) => {
             const r = results[i];
             const cls =
@@ -197,7 +197,7 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
         </ol>
         <span
           className={`pill transition-colors ${combo > 1 ? 'bg-gold text-[oklch(0.28_0.06_70)]' : 'bg-surface-2 text-ink-2'}`}
-          aria-label={`Combo ${combo.toFixed(1)} times`}
+          aria-label={t('trivia.combo', { x: combo.toFixed(1) })}
         >
           <Zap className="h-3.5 w-3.5 fill-current" aria-hidden="true" />×{combo.toFixed(1)}
         </span>
@@ -210,39 +210,43 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
           </span>
           <div>
             <h2 className="font-display text-3xl font-extrabold tracking-tight">
-              {correctCount === questions.length ? 'Perfect round!' : correctCount >= 3 ? 'Great round!' : 'Round complete'}
+              {correctCount === questions.length ? t('trivia.perfect') : correctCount >= 3 ? t('trivia.great') : t('trivia.complete')}
             </h2>
             <p className="mt-1 text-ink-2">
-              {correctCount} of {questions.length} correct
+              {t('trivia.correctOf', { correct: correctCount, total: questions.length })}
             </p>
           </div>
           <dl className="grid w-full grid-cols-2 gap-3">
             <div className="rounded-2xl bg-surface-2 p-4">
-              <dt className="text-sm text-ink-3">Score</dt>
+              <dt className="text-sm text-ink-3">{t('trivia.score')}</dt>
               <dd className="font-display text-3xl font-extrabold tabular-nums">{score}</dd>
             </div>
             <div className="rounded-2xl bg-gold-soft p-4">
-              <dt className="text-sm text-gold-ink">XP earned</dt>
+              <dt className="text-sm text-gold-ink">{t('trivia.xpEarned')}</dt>
               <dd className="font-display text-3xl font-extrabold text-gold-ink tabular-nums">+{totalXpEarned}</dd>
             </div>
           </dl>
           <button type="button" onClick={startQuiz} className="btn btn-primary w-full">
             <RotateCcw className="h-5 w-5" strokeWidth={2.5} />
-            Play another round
+            {t('trivia.playAgain')}
           </button>
         </section>
       ) : (
         <>
           <article className="card p-5 sm:p-7">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <h2 className="font-display text-lg font-extrabold">{currentQ.ask}</h2>
+              <h2 className="font-display text-lg font-extrabold">
+                {currentQ.type === 'match-ref'
+                  ? t('trivia.whichVerse')
+                  : t('trivia.finish', { reference: currentQ.verseReference })}
+              </h2>
               <div className="flex items-center gap-3">
-                <span className="font-display text-sm font-extrabold text-ink-3 tabular-nums">{score} pts</span>
+                <span className="font-display text-sm font-extrabold text-ink-3 tabular-nums">{t('trivia.points', { n: score })}</span>
                 <Ring value={(timeLeft / TIME_LIMIT) * 100} size={44} stroke={4} tone={timeLow ? 'danger' : 'brand'}>
                   <span
                     className={`font-display text-sm font-extrabold tabular-nums ${timeLow ? 'text-danger-ink' : ''}`}
                     role="timer"
-                    aria-label={`${timeLeft} seconds left`}
+                    aria-label={t('trivia.secondsLeft', { n: timeLeft })}
                   >
                     {timeLeft}
                   </span>
@@ -254,7 +258,7 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
             </p>
           </article>
 
-          <div className="flex flex-col gap-3" role="group" aria-label="Answers">
+          <div className="flex flex-col gap-3" role="group" aria-label={t('trivia.answers')}>
             {currentQ.options.map((option, idx) => {
               const hasAnswered = selectedAnswer !== null;
               const isCorrectAnswer = option === currentQ.correctAnswer;
@@ -285,7 +289,7 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
                     ) : hasAnswered && isSelected ? (
                       <X className="h-5 w-5" strokeWidth={3} />
                     ) : (
-                      LETTERS[idx]
+                      letters[idx]
                     )}
                   </span>
                   <span
@@ -304,7 +308,7 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
           </div>
           {selectedAnswer === '__TIMEOUT__' && (
             <p className="text-center font-display font-extrabold text-danger-ink" role="status">
-              Time’s up!
+              {t('trivia.timeUp')}
             </p>
           )}
         </>

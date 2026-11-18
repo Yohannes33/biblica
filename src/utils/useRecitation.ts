@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { translate, useLang, type StringKey } from '../i18n';
 
 // Minimal typing for the Web Speech recognition API (not in lib.dom yet).
 interface RecognitionResultList {
@@ -24,13 +25,13 @@ const getCtor = (): RecognitionCtor | undefined =>
     : ((window as unknown as { SpeechRecognition?: RecognitionCtor }).SpeechRecognition ||
       (window as unknown as { webkitSpeechRecognition?: RecognitionCtor }).webkitSpeechRecognition);
 
-const ERRORS: Record<string, string> = {
-  'not-allowed': 'Microphone access is blocked. Allow it for this site in your browser settings.',
-  'service-not-allowed': 'Speech recognition isn’t available here. Try opening Biblica in your browser.',
-  'no-speech': 'Didn’t hear anything. Tap Recite and start speaking.',
-  network: 'Reciting needs an internet connection.',
-  'audio-capture': 'No microphone was found.',
-  'language-not-supported': 'This device can’t recognise speech in this language.',
+const ERRORS: Record<string, StringKey> = {
+  'not-allowed': 'recite.error.notAllowed',
+  'service-not-allowed': 'recite.error.serviceNotAllowed',
+  'no-speech': 'recite.error.noSpeech',
+  network: 'recite.error.network',
+  'audio-capture': 'recite.error.audioCapture',
+  'language-not-supported': 'recite.error.languageNotSupported',
 };
 
 /**
@@ -41,7 +42,9 @@ export function useRecitation(onDone: (transcript: string) => void) {
   const supported = !!getCtor();
   const [isListening, setIsListening] = useState(false);
   const [interim, setInterim] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  // A key, not text: messages follow the interface language, which can differ from the verse's.
+  const lang = useLang();
+  const [error, setError] = useState<StringKey | null>(null);
   const rec = useRef<Recognition | null>(null);
   const finalText = useRef('');
   const failed = useRef(false);
@@ -78,7 +81,7 @@ export function useRecitation(onDone: (transcript: string) => void) {
     r.onerror = (e) => {
       if (e.error === 'aborted') return;
       failed.current = true;
-      setError(ERRORS[e.error] || 'Couldn’t listen just now. Try again.');
+      setError(ERRORS[e.error] || 'recite.error.generic');
     };
     r.onend = () => {
       rec.current = null;
@@ -99,7 +102,7 @@ export function useRecitation(onDone: (transcript: string) => void) {
     } catch {
       rec.current = null;
       setIsListening(false);
-      setError('Couldn’t start the microphone. Try again.');
+      setError('recite.error.micStart');
     }
   }, []);
 
@@ -115,7 +118,16 @@ export function useRecitation(onDone: (transcript: string) => void) {
 
   useEffect(() => cancel, [cancel]);
 
-  return { supported, isListening, interim, error, start, stop, cancel, clearError: () => setError(null) };
+  return {
+    supported,
+    isListening,
+    interim,
+    error: error && translate(lang, error),
+    start,
+    stop,
+    cancel,
+    clearError: () => setError(null),
+  };
 }
 
 // ---------- scoring ----------

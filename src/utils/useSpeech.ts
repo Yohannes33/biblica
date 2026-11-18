@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { translate, useLang, type StringKey } from '../i18n';
 
 const isIOS = () =>
   typeof navigator !== 'undefined' &&
   (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
 const SPEECH_LANG = { en: 'en-US', am: 'am-ET' } as const;
-const LANGUAGE_NAME = { en: 'English', am: 'Amharic' } as const;
 
 function pickVoice(language: 'en' | 'am'): SpeechSynthesisVoice | undefined {
   const voices = window.speechSynthesis.getVoices();
@@ -26,7 +26,9 @@ function pickVoice(language: 'en' | 'am'): SpeechSynthesisVoice | undefined {
  */
 export function useSpeech() {
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // A key, not text: messages follow the interface language, which can differ from the verse's.
+  const lang = useLang();
+  const [error, setError] = useState<StringKey | null>(null);
   const current = useRef<SpeechSynthesisUtterance | null>(null);
   const watchdog = useRef<number | undefined>(undefined);
   const supported = typeof window !== 'undefined' && 'speechSynthesis' in window;
@@ -59,7 +61,7 @@ export function useSpeech() {
       const voice = pickVoice(language);
       // An English voice reads Ethiopic script as silence or noise: say so instead.
       if (!voice && language !== 'en' && synth.getVoices().length > 0) {
-        setError(`This device has no ${LANGUAGE_NAME[language]} voice for reading aloud.`);
+        setError(`speech.noVoice.${language}`);
         return;
       }
       synth.cancel();
@@ -87,8 +89,8 @@ export function useSpeech() {
         setIsSpeaking(false);
         setError(
           synth.getVoices().length === 0
-            ? 'This device has no text-to-speech voice installed.'
-            : 'Couldn’t read aloud on this device. Try again in a moment.'
+            ? 'speech.noVoices'
+            : 'speech.failed'
         );
       };
 
@@ -101,7 +103,7 @@ export function useSpeech() {
         if (!isCurrent() || synth.speaking) return;
         current.current = null;
         setIsSpeaking(false);
-        setError('Read-aloud didn’t start. Check your volume and try again.');
+        setError('speech.didntStart');
       }, 2500);
     },
     [isSpeaking, stop, supported]
@@ -111,7 +113,15 @@ export function useSpeech() {
   useEffect(() => stop, [stop]);
 
   // iOS still "speaks" with the ring switch on silent, just inaudibly.
-  const hint = isSpeaking && isIOS() ? 'Can’t hear it? Turn off Silent Mode and turn the volume up.' : null;
+  const hint = isSpeaking && isIOS() ? translate(lang, 'speech.iosHint') : null;
 
-  return { isSpeaking, toggle, stop, supported, error, hint, clearError: () => setError(null) };
+  return {
+    isSpeaking,
+    toggle,
+    stop,
+    supported,
+    error: error && translate(lang, error),
+    hint,
+    clearError: () => setError(null),
+  };
 }

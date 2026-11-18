@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, Check, ChevronLeft } from 'lucide-react';
-import { TRANSLATIONS, translationInfo, type Translation } from '../data/translations';
+import { TRANSLATIONS, languageOf, translationInfo, type Translation } from '../data/translations';
 import { curatedVerses } from '../data/initialVerses';
 import { BibleBrowser, type PickedPassage } from './BibleBrowser';
+import { LanguageProvider, translate, translateCategory, type StringKey, type Vars } from '../i18n';
 
 export type FirstVerse = { kind: 'builtIn'; id: string } | { kind: 'passage'; passage: PickedPassage };
 
@@ -30,12 +31,17 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialTranslation, onFi
     heading.current?.focus({ preventScroll: true });
   }, [step]);
   const info = translationInfo(translation);
+  // This renders before the app's LanguageProvider, and should switch language
+  // the moment a Bible is picked, so it provides its own.
+  const lang = languageOf(translation);
+  const t = (key: StringKey, vars?: Vars) => translate(lang, key, vars);
 
   // Popular verses this Bible actually has (the Amharic one lacks the Old Testament).
   const popular = useMemo(() => curatedVerses(translation).filter((v) => v.translation === translation), [translation]);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-canvas text-ink">
+    <LanguageProvider value={lang}>
+    <div lang={lang} className="flex min-h-dvh flex-col bg-canvas text-ink">
       <main className="pt-safe mx-auto flex w-full max-w-xl flex-1 flex-col px-5 pb-8">
         <header className="flex items-center gap-3 pt-6 pb-5">
           {step === 'verse' ? (
@@ -43,7 +49,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialTranslation, onFi
               type="button"
               className="icon-btn rounded-full"
               onClick={() => setStep('bible')}
-              aria-label="Back to choosing a Bible"
+              aria-label={t('onboarding.backToBible')}
             >
               <ChevronLeft className="h-6 w-6" strokeWidth={2.5} />
             </button>
@@ -52,17 +58,17 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialTranslation, onFi
               <BookOpen className="h-6 w-6" strokeWidth={2.25} />
             </span>
           )}
-          <p className="font-display text-sm font-extrabold text-ink-3">Step {step === 'bible' ? 1 : 2} of 2</p>
+          <p className="font-display text-sm font-extrabold text-ink-3">{t('onboarding.step', { n: step === 'bible' ? 1 : 2, total: 2 })}</p>
         </header>
 
         {step === 'bible' ? (
           <>
-            <h1 ref={heading} tabIndex={-1} className="font-display text-3xl font-extrabold tracking-tight outline-none">Welcome to Biblica</h1>
+            <h1 ref={heading} tabIndex={-1} className="font-display text-3xl font-extrabold tracking-tight outline-none">{t('onboarding.welcome')}</h1>
             <p className="mt-2 text-lg text-ink-2">
-              Memorise Scripture a few minutes a day. First, which Bible do you read?
+              {t('onboarding.intro')}
             </p>
 
-            <div className="mt-6 flex flex-col gap-3" role="group" aria-label="Bible">
+            <div className="mt-6 flex flex-col gap-3" role="group" aria-label={t('onboarding.bibleGroup')}>
               {TRANSLATIONS.map((t) => {
                 const active = translation === t.id;
                 return (
@@ -80,9 +86,11 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialTranslation, onFi
                         <span lang={t.language} className="font-display text-lg font-extrabold">
                           {t.label}
                         </span>
-                        <span className="font-semibold text-ink-2">{t.name}</span>
+                        <span lang={t.id === 'AMH' ? lang : 'en'} className="font-semibold text-ink-2">
+                          {t.id === 'AMH' ? translate(lang, 'translation.AMH.name') : t.name}
+                        </span>
                       </span>
-                      <span className="mt-0.5 block text-sm text-ink-3">{t.blurb}.</span>
+                      <span className="mt-0.5 block text-sm text-ink-3">{translate(lang, 'onboarding.blurb', { blurb: translate(lang, `translation.${t.id}.blurb`) })}</span>
                     </span>
                     <span
                       className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ${active ? 'bg-brand text-on-brand' : 'ring-2 ring-line'}`}
@@ -98,30 +106,30 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialTranslation, onFi
             <div className="mt-auto flex flex-col gap-3 pt-8">
               <button type="button" className="btn btn-primary w-full" onClick={() => setStep('verse')}>
                 <span>
-                  Continue with <span lang={info.language}>{info.label}</span>
+                  {t('onboarding.continueWithBefore')}<span lang={info.language}>{info.label}</span>{t('onboarding.continueWithAfter')}
                 </span>
               </button>
               {onSignIn && (
                 <button type="button" className="btn btn-secondary w-full" onClick={() => onSignIn(translation)}>
-                  I already use Biblica: sign in
+                  {t('onboarding.signIn')}
                 </button>
               )}
-              <p className="text-center text-sm text-ink-3">You can change the Bible later in Settings.</p>
+              <p className="text-center text-sm text-ink-3">{t('onboarding.changeLater')}</p>
             </div>
           </>
         ) : (
           <>
-            <h1 ref={heading} tabIndex={-1} className="font-display text-3xl font-extrabold tracking-tight outline-none">What will you memorise first?</h1>
+            <h1 ref={heading} tabIndex={-1} className="font-display text-3xl font-extrabold tracking-tight outline-none">{t('onboarding.firstVerse')}</h1>
             <p className="mt-2 text-lg text-ink-2">
-              Start with a well-loved verse, or open the Bible and pick any passage.
+              {t('onboarding.firstVerseIntro')}
             </p>
 
-            <div className="segmented mt-6" role="group" aria-label="Where to pick from">
+            <div className="segmented mt-6" role="group" aria-label={t('onboarding.source')}>
               <button type="button" aria-pressed={source === 'popular'} onClick={() => setSource('popular')}>
-                Popular verses
+                {t('onboarding.popular')}
               </button>
               <button type="button" aria-pressed={source === 'bible'} onClick={() => setSource('bible')}>
-                Whole Bible
+                {t('onboarding.wholeBible')}
               </button>
             </div>
 
@@ -139,7 +147,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialTranslation, onFi
                           <span lang={info.language} className="font-display text-[1.0625rem] font-extrabold">
                             {v.reference}
                           </span>
-                          <span className="text-sm text-ink-3">{v.category}</span>
+                          <span className="text-sm text-ink-3">{translateCategory(lang, v.category)}</span>
                         </span>
                         <span lang={info.language} className="line-clamp-2 font-scripture leading-relaxed text-ink-2">
                           {v.text}
@@ -152,7 +160,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialTranslation, onFi
                 <BibleBrowser
                   key={translation}
                   translation={translation}
-                  pickLabel="Start with"
+                  pickLabel={t('onboarding.pickLabel')}
                   onPick={(passage) => onFinish(translation, { kind: 'passage', passage })}
                 />
               )}
@@ -161,5 +169,6 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialTranslation, onFi
         )}
       </main>
     </div>
+    </LanguageProvider>
   );
 };

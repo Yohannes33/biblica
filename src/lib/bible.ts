@@ -1,5 +1,6 @@
 import { BIBLE_BOOKS, isNewTestament, referenceBookName, type BibleBook } from '../data/bibleBooks';
 import { BIBLE_DATA_VERSION, translationInfo, type Translation } from '../data/translations';
+import { translate, translateCount, type Lang } from '../i18n';
 
 // The whole Bible ships as static JSON, one file per book per translation
 // (built by scripts/build-bible.ts). Files are immutable for a given
@@ -35,6 +36,21 @@ for (const book of BIBLE_BOOKS) {
   }
 }
 
+/** A book's name for interface text: the Amharic name when the interface is Amharic and the book has one. */
+export function bookNameIn(book: BibleBook, lang: Lang = 'en'): string {
+  return lang === 'am' && book.am ? book.am.name : book.name;
+}
+
+/** A translation's full name for interface text ("King James Version", "Amharic Bible (1962)"). */
+export function translationNameIn(translation: Translation, lang: Lang = 'en'): string {
+  return lang === 'am' && translation === 'AMH' ? translate(lang, 'translation.AMH.name') : translationInfo(translation).name;
+}
+
+/** A translation's short name for interface text: the id in English ("KJV"), the picker label in Amharic ("አማርኛ"). */
+export function translationShortNameIn(translation: Translation, lang: Lang = 'en'): string {
+  return lang === 'am' ? translationInfo(translation).label : translation;
+}
+
 export function findBook(input: string): BibleBook | null {
   const key = bookKey(input);
   if (!key) return null;
@@ -47,18 +63,18 @@ export function findBook(input: string): BibleBook | null {
 }
 
 /** Parse "Romans 12:1-2", "rom 12 2", "1 Jn 4:19", "Psalm 23:1–3", "Jude 3", "ዮሐንስ 3፡16". */
-export function parseReference(input: string): ParseResult {
+export function parseReference(input: string, lang: Lang = 'en'): ParseResult {
   const text = input.trim().replace(/[\u2010-\u2015]/g, '-');
   // book, number, optional -number, then optional :verse and -verse.
   // Amharic citations often use ፡ or ፥ where English uses a colon.
   const m = text.match(
     /^([1-3]?\s*\p{L}[\p{L}\p{M}\s.]*?)\s*(\d+)(?:\s*-\s*(\d+))?(?:\s*[:.\s\u1361\u1365]\s*(\d+)(?:\s*-\s*(\d+))?)?\s*$/iu
   );
-  if (!m) return { ok: false, error: 'Type a book, chapter and verse, like Romans 12:2.' };
+  if (!m) return { ok: false, error: translate(lang, 'bible.formatHint') };
 
   const book = findBook(m[1]);
-  if (!book) return { ok: false, error: `No book called “${m[1].trim()}”.` };
-  const range = 'Pick verses from one chapter, like Romans 12:1-2.';
+  if (!book) return { ok: false, error: translate(lang, 'bible.noBook', { name: m[1].trim() }) };
+  const range = translate(lang, 'bible.oneChapter');
 
   let chapter: number;
   let start: number;
@@ -76,22 +92,26 @@ export function parseReference(input: string): ParseResult {
   } else {
     if (m[3]) return { ok: false, error: range };
     chapter = Number(m[2]);
-    if (chapter < 1 || chapter > book.chapters) return { ok: false, error: `${book.name} has ${book.chapters} chapters.` };
-    return { ok: false, error: `Add a verse number, like ${referenceBookName(book)} ${chapter}:1.` };
+    if (chapter < 1 || chapter > book.chapters) return { ok: false, error: chapterCount(book, lang) };
+    return { ok: false, error: translate(lang, 'bible.addVerseNumber', { book: referenceBookName(book, lang), chapter }) };
   }
   if (chapter < 1 || chapter > book.chapters) {
     return {
       ok: false,
-      error: book.chapters === 1 ? `${book.name} has one chapter.` : `${book.name} has ${book.chapters} chapters.`,
+      error: chapterCount(book, lang),
     };
   }
-  if (start < 1) return { ok: false, error: 'Verses start at 1.' };
-  if (end < start) return { ok: false, error: 'The verse range runs backwards.' };
+  if (start < 1) return { ok: false, error: translate(lang, 'bible.startAtOne') };
+  if (end < start) return { ok: false, error: translate(lang, 'bible.backwards') };
   if (end - start + 1 > MAX_PASSAGE_VERSES) {
-    return { ok: false, error: `Pick ${MAX_PASSAGE_VERSES} verses or fewer so it fits a round.` };
+    return { ok: false, error: translate(lang, 'bible.tooMany', { max: MAX_PASSAGE_VERSES }) };
   }
   return { ok: true, ref: { book, chapter, start, end } };
 }
+
+/** "Jude has one chapter." / "Romans has 16 chapters." */
+const chapterCount = (book: BibleBook, lang: Lang) =>
+  translateCount(lang, 'bible.chapterCount', book.chapters, { book: bookNameIn(book, lang) });
 
 export function formatReference({ book, chapter, start, end }: PassageRef, language: 'en' | 'am' = 'en'): string {
   return `${referenceBookName(book, language)} ${chapter}:${start}${end > start ? `-${end}` : ''}`;
@@ -131,10 +151,11 @@ export function loadBook(translation: Translation, code: string): Promise<BookTe
 export type PassageResult = { ok: true; text: string } | { ok: false; error: string };
 
 /** Look up a passage's text. Rejects with BibleLoadError when the book can't be downloaded. */
-export async function getPassage(translation: Translation, ref: PassageRef): Promise<PassageResult> {
+export async function getPassage(translation: Translation, ref: PassageRef, lang: Lang = 'en'): Promise<PassageResult> {
   const info = translationInfo(translation);
+  const name = translationNameIn(translation, lang);
   if (info.newTestamentOnly && !isNewTestament(ref.book)) {
-    return { ok: false, error: `Only the New Testament of the ${info.name} is available so far.` };
+    return { ok: false, error: translate(lang, 'bible.newTestamentOnly', { name }) };
   }
   const book = await loadBook(translation, ref.book.code);
   const verses = book[ref.chapter - 1] ?? [];
@@ -142,7 +163,10 @@ export async function getPassage(translation: Translation, ref: PassageRef): Pro
   let count = verses.length;
   while (count > 0 && verses[count - 1] === '') count--;
   if (ref.end > count) {
-    return { ok: false, error: `${referenceBookName(ref.book)} ${ref.chapter} has ${count} verses.` };
+    return {
+      ok: false,
+      error: translate(lang, 'bible.verseCount', { book: referenceBookName(ref.book, lang), chapter: ref.chapter, n: count }),
+    };
   }
   const parts = verses.slice(ref.start - 1, ref.end);
   const lost = parts.findIndex((v) => v === null);
@@ -152,15 +176,18 @@ export async function getPassage(translation: Translation, ref: PassageRef): Pro
       ok: false,
       error:
         ref.end > ref.start
-          ? `Verse ${n} isn’t available in the ${info.name} yet: our digital copy lost its text. Try a range without it.`
-          : `This verse isn’t available in the ${info.name} yet: our digital copy lost its text.`,
+          ? translate(lang, 'bible.lostInRange', { n, name })
+          : translate(lang, 'bible.lostSingle', { name }),
     };
   }
   const absent = parts.findIndex((v) => !v);
   if (absent !== -1) {
     return {
       ok: false,
-      error: `The ${translation} leaves out verse ${ref.start + absent}: it isn’t in the oldest manuscripts.`,
+      error: translate(lang, 'bible.omitted', {
+        translation: translationShortNameIn(translation, lang),
+        n: ref.start + absent,
+      }),
     };
   }
   return { ok: true, text: parts.join(' ') };

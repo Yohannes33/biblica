@@ -7,6 +7,7 @@ import { Avatar } from './ui/Avatar';
 import { newAvatarSeed } from '../utils/avatar';
 import { getLevelTitle } from '../utils/level';
 import { TRANSLATIONS } from '../data/translations';
+import { displayName, useT } from '../i18n';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -41,7 +42,10 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   onToggleSound,
   onDataSynced,
 }) => {
-  const [name, setName] = useState(profile.name);
+  const t = useT();
+  // The default name shows in the interface language ("Pilgrim" / "መንገደኛ").
+  const shownName = displayName(profile.name, t.lang);
+  const [name, setName] = useState(shownName);
   const [translation, setTranslation] = useState<Translation>(profile.preferredTranslation);
   const [dailyGoal, setDailyGoal] = useState<number>(profile.dailyGoalVerses);
   const selectedTranslation = TRANSLATIONS.find((t) => t.id === translation) ?? TRANSLATIONS[0];
@@ -54,6 +58,14 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   const [syncLoading, setSyncLoading] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const isCloudEnabled = SupabaseService.isConfigured();
+  // Translation names are English proper names, except the Amharic Bible's.
+  const nameOf = (id: Translation, name: string) => (id === 'AMH' ? t('translation.AMH.name') : name);
+  // The server's own wording is English: show it in the English interface,
+  // our translated message otherwise.
+  const serverMessage = (err: unknown) => {
+    console.error(err);
+    return t.lang === 'en' && err instanceof Error ? err.message : null;
+  };
 
   useEffect(() => {
     if (isCloudEnabled) {
@@ -71,17 +83,17 @@ export const AccountModal: React.FC<AccountModalProps> = ({
       preferredTranslation: translation,
       dailyGoalVerses: dailyGoal,
     });
-    setStatusMessage('Name saved.');
+    setStatusMessage(t('settings.nameSaved'));
     setTimeout(() => setStatusMessage(null), 2500);
   };
 
   const handleGoogleSignIn = async () => {
     setAuthLoading(true);
-    setStatusMessage('Opening Google sign-in…');
+    setStatusMessage(t('settings.openingGoogle'));
     try {
       await SupabaseService.signInWithGoogle();
     } catch (err) {
-      setStatusMessage(err instanceof Error ? err.message : 'Google sign-in failed. Try again.');
+      setStatusMessage(serverMessage(err) ?? t('settings.googleFailed'));
       setAuthLoading(false);
     }
   };
@@ -94,16 +106,16 @@ export const AccountModal: React.FC<AccountModalProps> = ({
     try {
       if (isSignUp) {
         await SupabaseService.signUp(authEmail, authPassword, name);
-        setStatusMessage('Account created. Check your email to confirm, then sign in.');
+        setStatusMessage(t('settings.accountCreated'));
       } else {
         await SupabaseService.signIn(authEmail, authPassword);
-        setStatusMessage('Signed in.');
+        setStatusMessage(t('settings.signedIn'));
         const u = await SupabaseService.getCurrentUser();
         setCurrentUserEmail(u?.email || null);
         handleSyncCloud();
       }
     } catch (err) {
-      setStatusMessage(err instanceof Error ? err.message : 'Sign-in failed. Check your email and password.');
+      setStatusMessage(serverMessage(err) ?? t('settings.signInFailed'));
     } finally {
       setAuthLoading(false);
     }
@@ -112,13 +124,13 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   const handleSignOut = async () => {
     await SupabaseService.signOut();
     setCurrentUserEmail(null);
-    setStatusMessage('Signed out. Progress stays on this device.');
+    setStatusMessage(t('settings.signedOut'));
     setTimeout(() => setStatusMessage(null), 2500);
   };
 
   const handleSyncCloud = async () => {
     setSyncLoading(true);
-    setStatusMessage('Syncing your progress…');
+    setStatusMessage(t('settings.syncingProgress'));
     try {
       await SupabaseService.syncUp(stats, progressMap, verses);
       const remote = await SupabaseService.syncDown();
@@ -129,9 +141,9 @@ export const AccountModal: React.FC<AccountModalProps> = ({
           : verses;
         onDataSynced(mergedStats, remote.progressMap || progressMap, mergedVerses);
       }
-      setStatusMessage('Progress synced.');
+      setStatusMessage(t('settings.synced'));
     } catch (err) {
-      setStatusMessage(err instanceof Error ? err.message : 'Sync failed. Try again in a moment.');
+      setStatusMessage(serverMessage(err) ?? t('settings.syncFailed'));
     } finally {
       setSyncLoading(false);
       setTimeout(() => setStatusMessage(null), 3000);
@@ -156,19 +168,19 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   };
 
   return (
-    <Sheet open={isOpen} onClose={onClose} title="Profile & settings">
+    <Sheet open={isOpen} onClose={onClose} title={t('settings.title')}>
       {statusMessage && (
         <p role="status" className="animate-rise mb-4 rounded-2xl bg-brand-soft px-4 py-3 font-semibold text-brand-ink">
           {statusMessage}
         </p>
       )}
 
-      <section className="mb-6 flex items-center gap-4" aria-label="Your profile">
+      <section className="mb-6 flex items-center gap-4" aria-label={t('settings.yourProfile')}>
         <Avatar seed={profile.avatarSeed || 'biblica'} size={84} className="ring-4 ring-[var(--surface)]" />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-display text-xl font-extrabold">{profile.name}</p>
+          <p className="truncate font-display text-xl font-extrabold">{shownName}</p>
           <p className="truncate text-sm text-ink-3">
-            Level {stats.level} · {getLevelTitle(stats.level)}
+            {t('settings.levelLine', { level: stats.level, title: getLevelTitle(stats.level, t.lang) })}
           </p>
           <button
             type="button"
@@ -176,32 +188,32 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             className="btn btn-sm btn-secondary mt-2"
           >
             <Shuffle className="h-[18px] w-[18px]" strokeWidth={2.25} />
-            New look
+            {t('settings.newLook')}
           </button>
         </div>
       </section>
 
-      <Section title="Your name">
+      <Section title={t('settings.yourName')}>
         <form onSubmit={handleSaveProfile} className="flex gap-2">
           <label className="flex-1">
-            <span className="sr-only">Your name</span>
+            <span className="sr-only">{t('settings.yourName')}</span>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="field bg-surface"
-              placeholder="Your name"
+              placeholder={t('settings.yourName')}
               autoComplete="nickname"
             />
           </label>
-          <button type="submit" className="btn btn-primary" disabled={!name.trim() || name.trim() === profile.name}>
-            Save
+          <button type="submit" className="btn btn-primary" disabled={!name.trim() || name.trim() === shownName}>
+            {t('common.save')}
           </button>
         </form>
       </Section>
 
-      <Section title="Daily goal" footer="How many new verses join your Cards review each day.">
-        <div className="segmented" role="group" aria-label="Daily goal">
+      <Section title={t('settings.dailyGoal')} footer={t('settings.dailyGoalFooter')}>
+        <div className="segmented" role="group" aria-label={t('settings.dailyGoal')}>
           {[1, 3, 5, 10].map((count) => (
             <button
               key={count}
@@ -212,22 +224,22 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 onUpdateProfile({ ...profile, dailyGoalVerses: count });
               }}
             >
-              {count} {count === 1 ? 'verse' : 'verses'}
+              {t.count('verses', count)}
             </button>
           ))}
         </div>
       </Section>
 
-      <Section title="Appearance & sound">
+      <Section title={t('settings.appearance')}>
         <div className="group-list">
           <div className="flex items-center gap-3 p-3 pl-4">
-            <span className="flex-1 font-medium">Theme</span>
-            <div className="segmented w-48" role="group" aria-label="Theme">
+            <span className="flex-1 font-medium">{t('settings.theme')}</span>
+            <div className="segmented w-48" role="group" aria-label={t('settings.theme')}>
               <button type="button" aria-pressed={stats.theme === 'light'} onClick={() => onToggleTheme('light')} className="flex items-center justify-center gap-1.5">
-                <Sun className="h-4 w-4" aria-hidden="true" /> Light
+                <Sun className="h-4 w-4" aria-hidden="true" /> {t('settings.light')}
               </button>
               <button type="button" aria-pressed={stats.theme === 'dark'} onClick={() => onToggleTheme('dark')} className="flex items-center justify-center gap-1.5">
-                <Moon className="h-4 w-4" aria-hidden="true" /> Dark
+                <Moon className="h-4 w-4" aria-hidden="true" /> {t('settings.dark')}
               </button>
             </div>
           </div>
@@ -237,12 +249,12 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             ) : (
               <VolumeX className="h-5 w-5 text-ink-3" aria-hidden="true" />
             )}
-            <span className="flex-1 font-medium">Sound effects</span>
+            <span className="flex-1 font-medium">{t('settings.sound')}</span>
             <button
               type="button"
               role="switch"
               aria-checked={stats.soundEnabled}
-              aria-label="Sound effects"
+              aria-label={t('settings.sound')}
               onClick={onToggleSound}
               className={`relative h-[31px] w-[51px] shrink-0 rounded-full transition-colors ${stats.soundEnabled ? 'bg-brand' : 'bg-surface-3'}`}
             >
@@ -257,10 +269,13 @@ export const AccountModal: React.FC<AccountModalProps> = ({
       </Section>
 
       <Section
-        title="Default translation"
-        footer={`${selectedTranslation.name}. ${selectedTranslation.blurb}. The built-in verses use it.`}
+        title={t('settings.defaultTranslation')}
+        footer={t('settings.translationFooter', {
+          name: nameOf(selectedTranslation.id, selectedTranslation.name),
+          blurb: t(`translation.${selectedTranslation.id}.blurb`),
+        })}
       >
-        <div className="grid grid-cols-4 gap-2" role="group" aria-label="Default translation">
+        <div className="grid grid-cols-4 gap-2" role="group" aria-label={t('settings.defaultTranslation')}>
           {TRANSLATIONS.map(({ id, label, name, language }) => (
             <button
               key={id}
@@ -276,25 +291,25 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             >
               {/* Visible label in its own language; the English name follows for screen readers. */}
               <span lang={language}>{label}</span>
-              <span className="sr-only">, {name}</span>
+              <span lang={id === 'AMH' ? t.lang : 'en'} className="sr-only">, {nameOf(id, name)}</span>
             </button>
           ))}
         </div>
       </Section>
 
       <Section
-        title="Cloud sync"
-        footer={!currentUserEmail ? 'Sign in to keep your streak and verses in sync across your devices.' : undefined}
+        title={t('settings.cloudSync')}
+        footer={!currentUserEmail ? t('settings.cloudFooter') : undefined}
       >
         <div className="card rounded-[1.25rem] p-4">
           <div className="mb-3 flex items-center gap-2">
             {currentUserEmail ? (
               <span className="pill bg-brand-soft text-brand-ink">
-                <CloudCheck className="h-4 w-4" aria-hidden="true" /> Connected
+                <CloudCheck className="h-4 w-4" aria-hidden="true" /> {t('settings.connected')}
               </span>
             ) : (
               <span className="pill bg-surface-2 text-ink-2">
-                <Cloud className="h-4 w-4" aria-hidden="true" /> Saved on this device
+                <Cloud className="h-4 w-4" aria-hidden="true" /> {t('settings.savedOnDevice')}
               </span>
             )}
           </div>
@@ -302,15 +317,15 @@ export const AccountModal: React.FC<AccountModalProps> = ({
           {currentUserEmail ? (
             <div className="flex flex-col gap-3">
               <p className="text-ink-2">
-                Signed in as <span className="font-semibold break-all text-ink">{currentUserEmail}</span>
+                {t('settings.signedInAs')} <span className="font-semibold break-all text-ink">{currentUserEmail}</span>
               </p>
               <button type="button" disabled={syncLoading} onClick={handleSyncCloud} className="btn btn-primary">
                 <RefreshCw className={`h-5 w-5 ${syncLoading ? 'animate-spin' : ''}`} strokeWidth={2.5} />
-                {syncLoading ? 'Syncing…' : 'Sync now'}
+                {syncLoading ? t('settings.syncing') : t('settings.syncNow')}
               </button>
               <button type="button" onClick={handleSignOut} className="btn btn-sm btn-secondary text-danger-ink">
                 <LogOut className="h-[18px] w-[18px]" strokeWidth={2.25} />
-                Sign out
+                {t('settings.signOut')}
               </button>
             </div>
           ) : isCloudEnabled ? (
@@ -322,24 +337,24 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                 </svg>
-                Continue with Google
+                {t('settings.continueGoogle')}
               </button>
               <div className="flex items-center gap-3 text-sm text-ink-3" aria-hidden="true">
                 <span className="h-px flex-1 bg-line" />
-                or use email
+                {t('settings.orEmail')}
                 <span className="h-px flex-1 bg-line" />
               </div>
               <form onSubmit={handleAuthSubmit} className="flex flex-col gap-3">
-                <div className="segmented" role="group" aria-label="Account">
+                <div className="segmented" role="group" aria-label={t('settings.account')}>
                   <button type="button" aria-pressed={!isSignUp} onClick={() => setIsSignUp(false)}>
-                    Sign in
+                    {t('settings.signIn')}
                   </button>
                   <button type="button" aria-pressed={isSignUp} onClick={() => setIsSignUp(true)}>
-                    Create account
+                    {t('settings.createAccount')}
                   </button>
                 </div>
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-sm font-semibold text-ink-2">Email</span>
+                  <span className="text-sm font-semibold text-ink-2">{t('settings.email')}</span>
                   <input
                     type="email"
                     required
@@ -351,7 +366,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   />
                 </label>
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-sm font-semibold text-ink-2">Password</span>
+                  <span className="text-sm font-semibold text-ink-2">{t('settings.password')}</span>
                   <input
                     type="password"
                     required
@@ -363,43 +378,47 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 </label>
                 <button type="submit" disabled={authLoading} className="btn btn-primary mt-1">
                   <LogIn className="h-5 w-5" strokeWidth={2.5} />
-                  {authLoading ? 'Connecting…' : isSignUp ? 'Create account' : 'Sign in'}
+                  {authLoading ? t('settings.connecting') : isSignUp ? t('settings.createAccount') : t('settings.signIn')}
                 </button>
               </form>
             </div>
           ) : (
-            <p className="text-ink-2">Cloud sync isn’t set up for this build. Your progress is saved on this device.</p>
+            <p className="text-ink-2">{t('settings.cloudUnavailable')}</p>
           )}
         </div>
       </Section>
 
-      <Section title="Backup" footer="Downloads your progress and custom verses as a JSON file.">
+      <Section title={t('settings.backup')} footer={t('settings.backupFooter')}>
         <button type="button" onClick={handleExportData} className="btn btn-secondary w-full">
           <Download className="h-5 w-5" strokeWidth={2.25} />
-          Download backup
+          {t('settings.downloadBackup')}
         </button>
       </Section>
 
       {/* The Amharic text's licence requires its full copyright statement in the app. */}
-      <Section title="Bible texts">
+      <Section title={t('settings.bibleTexts')}>
         <ul className="flex flex-col gap-3 px-1 text-sm leading-relaxed text-ink-2">
           {TRANSLATIONS.map(({ id, name, credit }) => (
-            <li key={id}>
-              <span className="font-semibold text-ink">{name}.</span> {credit}
+            // The statements are English legal text; only the Amharic Bible's name is translated.
+            <li key={id} lang="en">
+              <span lang={id === 'AMH' ? t.lang : 'en'} className="font-semibold text-ink">
+                {nameOf(id, name)}.
+              </span>{' '}
+              {credit}
             </li>
           ))}
         </ul>
       </Section>
       <p className="px-1 text-xs leading-relaxed text-ink-3">
-        Avatars:{' '}
+        {t('settings.avatars')}{' '}
         <a className="underline" href="https://www.figma.com/community/file/1184595184137881796" target="_blank" rel="noreferrer">
           Adventurer Neutral
         </a>{' '}
-        by Lisa Wischofsky,{' '}
+        {t('settings.avatarsBy')}{' '}
         <a className="underline" href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">
           CC BY 4.0
         </a>
-        , via DiceBear.
+        {t('settings.avatarsVia')}
       </p>
     </Sheet>
   );
