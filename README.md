@@ -83,7 +83,13 @@ public/bible/v1/<KJV|BSB|WEB|AMH>/<USFM book code>.json   // (string|null)[][]: 
 
 The Amharic New Testament is the 1962 text from eBible.org (`amh`): © 1962, 2003 United Bible Societies, used with the Bible Society of Ethiopia's permission for **non-commercial** use, on condition that the full copyright statement is shown (Settings → Bible texts). Any commercial use of Biblica needs the Bible Society of Ethiopia's written permission first.
 
-The digital text is damaged in 254 places: it marks 3-5 verses as printed together (`\v 14-16`) but keeps only one verse's words, sometimes the first and sometimes the last (John 3:14-16 holds only 3:16). John 1:41-52 are also numbered one too high. Every verse in those places, 857 in all, is stored as `null` and shown as not available rather than under a guessed number. Restoring them needs a native Amharic reader to confirm each one. Only the New Testament is available; the Old Testament needs the Bible Society's text.
+The digital text is damaged in 254 places: it marks 3-5 verses as printed together (`\v 14-16`) but keeps only one verse's words, sometimes the first and sometimes the last (John 3:14-16 holds only 3:16). John 1:41-52 are also numbered one too high. Every verse in those places, 857 in all, is stored as `null` and shown as not available rather than under a guessed number. Only the New Testament is available; the Old Testament needs the Bible Society's text.
+
+Restoring them goes through a native Amharic reader. `scripts/amharic-repairs.json` proposes, for each damaged place, the one verse its surviving text belongs to; the build applies only entries marked `confirmed`. To run a review round:
+
+1. `npm run amharic:sheet -- review.html` and send `review.html` to the reader. It works offline in any browser, keeps their progress, and makes an answers text to send back.
+2. Save their answers as a file and run `npm run amharic:apply -- answers.txt`. "Yes", or another verse the reader picks, confirms an entry; "None" and "Not sure" leave it unavailable.
+3. Run `npm run build:bible`, bumping `BIBLE_DATA_VERSION` if the Amharic files are already deployed, and commit.
 
 To add a translation: add it to `TRANSLATIONS` in `src/data/translations.ts` with its eBible.org id, run `npm run build:bible`, and commit the output. If a run would change files that are already published (eBible revises its texts), the script stops: bump `BIBLE_DATA_VERSION` so readers get the new files instead of their cached copies.
 

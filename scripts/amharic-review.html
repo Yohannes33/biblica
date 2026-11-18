@@ -1,0 +1,390 @@
+<title>Amharic Verse Check</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Serif+Ethiopic:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&display=swap">
+<!-- Template for scripts/amharic-review.ts: `npm run amharic:sheet -- out.html` fills in the data. -->
+<style>
+/* Layout: one column of entry cards under a sticky progress bar; answers gather at the foot. */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --ink: #0f172a;
+  --muted: #4b5568;
+  --line: #dde1e8;
+  --rubric: #a3241a; /* the red of Ethiopian manuscript rubrics */
+  --rubric-soft: #fbeceb;
+  --yes: #166534;
+  --yes-soft: #e7f5ec;
+  --no: #9f1239;
+  --no-soft: #fdecef;
+  --unsure: #92400e;
+  --unsure-soft: #fdf2e3;
+  --focus: #2563eb;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-am: "Noto Serif Ethiopic", "Abyssinica SIL", "Nyala", "Noto Sans Ethiopic", "Ebrima", serif;
+  --font-en: "Source Serif 4", Georgia, "Times New Roman", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d111c; --surface: #151a28; --ink: #f8fafc; --muted: #a7b0c3; --line: #2a3145;
+    --rubric: #f08a7c; --rubric-soft: #2e1b1d; --yes: #74d39a; --yes-soft: #142a1f;
+    --no: #f493a8; --no-soft: #2e1820; --unsure: #f3b96b; --unsure-soft: #2d2216; --focus: #7aa7ff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d111c; --surface: #151a28; --ink: #f8fafc; --muted: #a7b0c3; --line: #2a3145;
+  --rubric: #f08a7c; --rubric-soft: #2e1b1d; --yes: #74d39a; --yes-soft: #142a1f;
+  --no: #f493a8; --no-soft: #2e1820; --unsure: #f3b96b; --unsure-soft: #2d2216; --focus: #7aa7ff;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 var(--font-ui); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+.wrap { max-width: 760px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2 { text-wrap: balance; line-height: 1.2; }
+button, input, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.intro { padding-block: 28px 20px; display: grid; gap: 14px; }
+.intro h1 { margin: 0; font-size: 1.75rem; letter-spacing: -0.01em; }
+.intro p { margin: 0; max-width: 62ch; color: var(--muted); }
+.intro ol { margin: 0; padding-left: 1.2em; max-width: 62ch; display: grid; gap: 4px; }
+.name { display: grid; gap: 6px; max-width: 360px; }
+.name label { font-weight: 600; }
+.name input, .note input, textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); }
+.bar .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding-block: 10px; }
+.progress { flex: 1 1 200px; display: grid; gap: 4px; min-width: 0; }
+.progress strong { font-variant-numeric: tabular-nums; }
+.meter { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--yes); transform: scaleX(0); transform-origin: left; transition: transform .2s; }
+.filters { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--line); border-radius: 999px; }
+.filters button { border: 0; background: none; padding: 6px 12px; border-radius: 999px; cursor: pointer; color: var(--muted); font-weight: 500; }
+.filters button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.jump { color: var(--rubric); font-weight: 600; text-decoration: none; white-space: nowrap; }
+
+.list { display: grid; gap: 14px; padding-block: 18px 8px; }
+.entry { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 14px; min-width: 0; }
+.entry[data-decision="yes"], .entry[data-decision="verse"] { border-color: var(--yes); }
+.entry[data-decision="no"] { border-color: var(--no); }
+.entry[data-decision="unsure"] { border-color: var(--unsure); }
+.head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.head .ref { font-family: var(--font-am); font-weight: 600; font-size: 1.05rem; }
+.head .ref-en { color: var(--muted); font-variant-numeric: tabular-nums; }
+.head .count { margin-left: auto; color: var(--muted); font-size: .8rem; font-variant-numeric: tabular-nums; }
+.why { margin: 0; font-size: .85rem; color: var(--muted); }
+.am { margin: 0; font-family: var(--font-am); font-size: 1.3rem; line-height: 1.75; overflow-wrap: anywhere; }
+.am mark { background: var(--rubric-soft); color: var(--rubric); border-radius: 3px; padding: 0 2px; }
+.proposal { background: var(--rubric-soft); border-radius: 8px; padding: 12px 14px; display: grid; gap: 4px; }
+.proposal .pv { color: var(--rubric); }
+.proposal .label { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+.proposal .pv { font-weight: 600; }
+.en { margin: 0; font-family: var(--font-en); font-size: 1.02rem; }
+.caution { margin: 0; padding: 10px 12px; border-radius: 8px; background: var(--unsure-soft); color: var(--unsure); font-size: .9rem; }
+
+.choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.choices button { flex: 1 1 150px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-weight: 600; text-align: center; }
+.choices button:hover { border-color: var(--muted); }
+.choices button[aria-pressed="true"][data-d="yes"] { background: var(--yes-soft); border-color: var(--yes); color: var(--yes); }
+.choices button[aria-pressed="true"][data-d="verse"] { background: var(--yes-soft); border-color: var(--yes); color: var(--yes); }
+.choices button[aria-pressed="true"][data-d="no"] { background: var(--no-soft); border-color: var(--no); color: var(--no); }
+.choices button[aria-pressed="true"][data-d="unsure"] { background: var(--unsure-soft); border-color: var(--unsure); color: var(--unsure); }
+
+.others { display: grid; gap: 8px; border: 0; margin: 0; padding: 0; min-width: 0; }
+.others legend { font-weight: 600; padding: 0; margin-bottom: 6px; }
+.others label { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.others label:has(input:checked) { border-color: var(--yes); background: var(--yes-soft); }
+.others input { margin-top: 4px; }
+.others .v { font-weight: 600; }
+.others .en { grid-column: 2; font-size: .95rem; }
+details.range summary { cursor: pointer; color: var(--muted); font-size: .9rem; }
+details.range ol { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+details.range li { display: grid; grid-template-columns: 3.2em 1fr; gap: 8px; }
+details.range li b { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 600; }
+.fix { display: grid; gap: 6px; }
+.fix label, .note label { font-weight: 600; font-size: .9rem; }
+.fix textarea { font-family: var(--font-am); font-size: 1.1rem; line-height: 1.6; min-height: 6em; }
+.fix .err { color: var(--no); font-size: .85rem; margin: 0; }
+.note { display: grid; gap: 6px; }
+.empty { padding: 32px 0; text-align: center; color: var(--muted); }
+
+.send { padding-block: 28px 40px; display: grid; gap: 12px; }
+.send h2 { margin: 0; font-size: 1.3rem; }
+.send p { margin: 0; color: var(--muted); max-width: 62ch; }
+.send .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.send .actions button { padding: 10px 16px; border-radius: 8px; border: 1px solid var(--ink); background: var(--ink); color: var(--surface); font-weight: 600; cursor: pointer; }
+.send .actions button.secondary { background: var(--surface); color: var(--ink); }
+.send textarea { font: 13px/1.5 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; min-height: 10em; }
+.status { min-height: 1.4em; font-weight: 600; color: var(--yes); }
+.copyright { padding-block: 0 32px; font-size: .78rem; color: var(--muted); }
+.copyright p { margin: 0; max-width: 75ch; }
+@media (prefers-reduced-motion: reduce) { .meter i { transition: none; } }
+</style>
+
+<header class="wrap intro">
+  <h1>Amharic verse check</h1>
+  <p>Biblica is a free app for memorising Bible verses. Its Amharic New Testament (1962) comes from a digital copy where, in some places, several verses were joined and only one verse's words survived. We want to put each surviving text back under its correct verse number, but only where a native reader agrees.</p>
+  <ol>
+    <li>Read the Amharic text, then the English of the verse we think it is.</li>
+    <li>Press <b>Yes</b> if it is that verse. If it is another verse, press <b>Different verse</b> and pick it. If it is none of them, or mixes several verses, press <b>None</b>. Use <b>Not sure</b> freely: unconfirmed verses simply stay hidden in the app.</li>
+    <li>Your answers are kept in this browser as you go. When you are done, or want to stop, send us the answers from the bottom of the page.</li>
+  </ol>
+  <div class="name">
+    <label for="reviewer">Your name</label>
+    <input id="reviewer" autocomplete="name" placeholder="So we can credit your check">
+  </div>
+</header>
+
+<div class="bar">
+  <div class="wrap">
+    <div class="progress" aria-live="polite">
+      <span><strong id="done">0</strong> of <strong id="total">0</strong> answered</span>
+      <div class="meter" aria-hidden="true"><i id="meter"></i></div>
+    </div>
+    <div class="filters" role="group" aria-label="Show">
+      <button type="button" data-filter="todo" aria-pressed="false">To do</button>
+      <button type="button" data-filter="all" aria-pressed="true">All</button>
+      <button type="button" data-filter="answered" aria-pressed="false">Answered</button>
+    </div>
+    <a class="jump" href="#send">Send answers ↓</a>
+  </div>
+</div>
+
+<main class="wrap">
+  <div class="list" id="list"></div>
+  <p class="empty" id="empty" hidden>Nothing here. Switch to “All” to see every entry.</p>
+</main>
+
+<section class="wrap send" id="send">
+  <h2>Send your answers</h2>
+  <p>Save your answers as a file and attach it to a message to the person who sent you this page. If you can’t attach files, copy them and paste them into the message. You can send partial answers and continue later.</p>
+  <div class="actions">
+    <button type="button" id="save">Save as file</button>
+    <button type="button" class="secondary" id="copy">Copy answers</button>
+  </div>
+  <div class="status" id="status" role="status"></div>
+  <label for="answers" class="note"><span>Your answers (you can also select and copy this text)</span></label>
+  <textarea id="answers" readonly></textarea>
+</section>
+
+<footer class="wrap copyright"><p id="copyright"></p></footer>
+
+<script>
+const DATA = /*DATA*/null;
+const KEY = `biblica-amharic-review-${DATA ? DATA.storage : 'none'}`;
+const store = {
+  read() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } },
+  write(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {} },
+};
+const saved = store.read();
+const state = { name: saved.name || '', answers: saved.answers || {}, filter: 'all' };
+const entries = DATA ? DATA.entries : [];
+const $ = (id) => document.getElementById(id);
+const el = (tag, props = {}, ...kids) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === 'class') n.className = v;
+    else if (k === 'text') n.textContent = v;
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v);
+  }
+  for (const k of kids) if (k != null) n.append(k);
+  return n;
+};
+const span = (a, b) => (a === b ? `${a}` : `${a}–${b}`);
+const say = (msg) => { $('status').textContent = msg; };
+const persist = () => { store.write({ name: state.name, answers: state.answers }); refresh(); };
+const answered = (e) => {
+  const a = state.answers[e.ref];
+  if (!a || !a.decision) return false;
+  if (a.decision === 'verse' && !a.verse) return false;
+  if (e.kind === 'latin' && a.decision === 'yes' && !validFix(e, a.fix)) return false;
+  return true;
+};
+const oneLine = (t) => String(t || '').replace(/\s+/g, ' ').trim();
+// Matches fixKeepsRest in amharic-review.ts: only the garbled word (and the word before it) may change.
+const keepsRest = (e, t) => t.startsWith(e.keep.before) && t.endsWith(e.keep.after) && t.length > e.keep.before.length + e.keep.after.length + 1;
+const validFix = (e, t) => oneLine(t).length > 0 && !/[A-Za-z/|]/.test(t) && keepsRest(e, oneLine(t));
+
+function whyText(e) {
+  if (e.kind === 'combined') return `The source prints verses ${span(e.start, e.end)} together, but only one verse's words are there.`;
+  if (e.kind === 'misnumbered') return `The source calls this ${e.chapter}:${e.start}, one higher than other Bibles from here to the end of John 1.`;
+  return 'One word in this verse is garbled: it has Latin letters in it (highlighted).';
+}
+
+function amharic(e) {
+  const p = el('p', { class: 'am', lang: 'am' });
+  if (e.kind !== 'latin') { p.textContent = e.text; return p; }
+  for (const part of e.text.split(/(\S*[A-Za-z]\S*)/)) {
+    p.append(/[A-Za-z]/.test(part) ? el('mark', { text: part }) : part);
+  }
+  return p;
+}
+
+function card(e, i) {
+  const a = state.answers[e.ref] || {};
+  const proposedEn = (e.verses.find((x) => x.v === e.proposed) || {}).en || '';
+  const card = el('article', { class: 'entry', id: `e${i}`, 'data-ref': e.ref, 'aria-labelledby': `h${i}` });
+  card.append(
+    el('div', { class: 'head', id: `h${i}` },
+      el('span', { class: 'ref', lang: 'am', text: `${e.bookAm} ${e.chapter}:${span(e.start, e.end)}` }),
+      el('span', { class: 'ref-en', text: `${e.book} ${e.chapter}:${span(e.start, e.end)}` }),
+      el('span', { class: 'count', text: `${i + 1} / ${entries.length}` })),
+    el('p', { class: 'why', text: whyText(e) }),
+    amharic(e),
+    el('div', { class: 'proposal' },
+      el('span', { class: 'label', text: 'We think this is' }),
+      el('span', { class: 'pv', text: `${e.bookAm} ${e.chapter}:${e.proposed} · ${e.book} ${e.chapter}:${e.proposed}` }),
+      el('p', { class: 'en', lang: 'en', text: proposedEn })),
+  );
+  if (e.caution) card.append(el('p', { class: 'caution', text: 'This text may hold words from more than one verse. If it does, choose “None”, and it will stay hidden in the app.' }));
+
+  const others = e.verses.filter((x) => x.v !== e.proposed);
+  const choices = [
+    ['yes', e.kind === 'latin' ? `Yes, ${e.chapter}:${e.proposed}` : `Yes, it is ${e.chapter}:${e.proposed}`],
+    ...(others.length ? [['verse', 'Different verse']] : []),
+    ['no', e.kind === 'latin' ? 'Can’t fix it' : 'None of these'],
+    ['unsure', 'Not sure'],
+  ];
+  const group = el('div', { class: 'choices', role: 'group', 'aria-label': `Answer for ${e.book} ${e.chapter}:${span(e.start, e.end)}` });
+  for (const [d, label] of choices) {
+    group.append(el('button', { type: 'button', 'data-d': d, 'aria-pressed': String(a.decision === d), text: label, onclick: () => decide(e, d) }));
+  }
+  card.append(group);
+
+  if (others.length) {
+    const fs = el('fieldset', { class: 'others' }, el('legend', { text: 'Which verse is it?' }));
+    fs.hidden = a.decision !== 'verse';
+    for (const x of others) {
+      const id = `v${i}-${x.v}`;
+      const input = el('input', { type: 'radio', name: `v${i}`, id, value: String(x.v), onchange: () => { state.answers[e.ref] = { ...state.answers[e.ref], decision: 'verse', verse: x.v }; persist(); } });
+      if (a.decision === 'verse' && a.verse === x.v) input.checked = true;
+      fs.append(el('label', { for: id }, input, el('span', { class: 'v', text: `${e.book} ${e.chapter}:${x.v}` }), el('p', { class: 'en', lang: 'en', text: x.en || '(this verse is not in modern English Bibles)' })));
+    }
+    card.append(fs);
+  }
+
+  if (e.kind === 'latin') {
+    const fix = el('div', { class: 'fix' });
+    fix.hidden = a.decision !== 'yes';
+    const ta = el('textarea', { id: `fix${i}`, lang: 'am', oninput: (ev) => { state.answers[e.ref] = { ...state.answers[e.ref], fix: ev.target.value }; err.hidden = validFix(e, ev.target.value); persist(); } });
+    ta.value = a.fix ?? e.text;
+    const err = el('p', { class: 'err', text: 'Replace the highlighted Latin letters with the right Amharic word, and keep the rest of the verse as it is.' });
+    err.hidden = validFix(e, ta.value);
+    fix.append(el('label', { for: `fix${i}`, text: 'Type the verse as it is printed, with the garbled word corrected' }), ta, err);
+    card.append(fix);
+  }
+
+  if (e.verses.length > 1) {
+    const list = el('ol');
+    for (const x of e.verses) list.append(el('li', {}, el('b', { text: `${e.chapter}:${x.v}` }), el('span', { class: 'en', lang: 'en', text: x.en || '(not in modern English Bibles)' })));
+    card.append(el('details', { class: 'range' }, el('summary', { text: `English of every verse here (${e.chapter}:${span(e.verses[0].v, e.verses.at(-1).v)})` }), list));
+  }
+
+  const note = el('input', { id: `n${i}`, value: a.note || '', placeholder: 'Optional', oninput: (ev) => { state.answers[e.ref] = { ...state.answers[e.ref], note: ev.target.value }; persist(); } });
+  card.append(el('div', { class: 'note' }, el('label', { for: `n${i}`, text: 'Comment' }), note));
+  card.dataset.decision = a.decision || '';
+  return card;
+}
+
+function decide(e, d) {
+  const prev = state.answers[e.ref] || {};
+  const next = { ...prev, decision: d };
+  if (d !== 'verse') delete next.verse;
+  state.answers[e.ref] = next;
+  const i = entries.indexOf(e);
+  const old = $(`e${i}`);
+  const fresh = card(e, i);
+  old.replaceWith(fresh);
+  if (state.filter === 'todo' && answered(e)) {
+    // A finished answer leaves "To do": carry on with the next card.
+    persist();
+    [...document.querySelectorAll('.entry')].slice(i + 1).find((n) => !n.hidden)?.querySelector('button')?.focus();
+  } else {
+    // Keep the card in view (focus holds it) while it is still being answered.
+    fresh.querySelector(`[data-d="${d}"]`).focus();
+    persist();
+  }
+}
+
+function exportText() {
+  const clean = (t) => oneLine(t).replace(/\s*\|\s*/g, ' / ');
+  const lines = [];
+  for (const e of entries) {
+    if (!answered(e)) continue;
+    const a = state.answers[e.ref];
+    const answer = a.decision === 'yes' ? `yes ${e.proposed}` : a.decision === 'verse' ? `verse ${a.verse}` : a.decision;
+    let line = `${e.ref} | ${answer}`;
+    if (e.kind === 'latin' && a.decision === 'yes') line += ` | fix: ${oneLine(a.fix)}`;
+    if (clean(a.note)) line += ` | note: ${clean(a.note)}`;
+    lines.push(line);
+  }
+  // The end line lets us notice answers that were cut short on the way.
+  const head = ['Biblica Amharic review', `Sheet: ${DATA ? DATA.sheet : ''}`, `Reviewer: ${clean(state.name)}`, `Date: ${new Date().toISOString().slice(0, 10)}`];
+  return [...head, ...lines, `End of answers: ${lines.length}`].join('\n') + '\n';
+}
+
+function refresh() {
+  const done = entries.filter(answered).length;
+  $('done').textContent = done;
+  $('total').textContent = entries.length;
+  $('meter').style.transform = `scaleX(${entries.length ? done / entries.length : 0})`;
+  $('answers').value = exportText();
+  let shown = 0;
+  entries.forEach((e, i) => {
+    const node = $(`e${i}`);
+    // Never hide the card someone is typing in; it re-filters when they leave it.
+    const show = state.filter === 'all' || node.contains(document.activeElement) || (state.filter === 'todo') !== answered(e);
+    node.hidden = !show;
+    if (show) shown++;
+  });
+  $('empty').hidden = shown > 0;
+}
+
+function render() {
+  const list = $('list');
+  list.replaceChildren(...entries.map(card));
+  $('reviewer').value = state.name;
+  $('copyright').textContent = DATA ? DATA.copyright : '';
+  refresh();
+}
+
+$('reviewer').addEventListener('input', (ev) => { state.name = ev.target.value; say(''); persist(); });
+$('list').addEventListener('focusout', () => setTimeout(refresh));
+const needName = () => {
+  if (oneLine(state.name)) return false;
+  say('Type your name at the top first, so we can record who checked these verses.');
+  $('reviewer').focus();
+  return true;
+};
+document.querySelectorAll('[data-filter]').forEach((b) => b.addEventListener('click', () => {
+  state.filter = b.dataset.filter;
+  document.querySelectorAll('[data-filter]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  refresh();
+}));
+$('copy').addEventListener('click', () => {
+  if (needName()) return;
+  const text = exportText();
+  const fallback = () => { const ta = $('answers'); ta.focus(); ta.select(); say('Selected: press Copy (or Ctrl+C) to copy it.'); };
+  if (!navigator.clipboard) return fallback();
+  navigator.clipboard.writeText(text).then(() => say('Copied. Paste it into your message.'), fallback);
+});
+$('save').addEventListener('click', async () => {
+  if (needName()) return;
+  const filename = `amharic-review-${new Date().toISOString().slice(0, 10)}.txt`;
+  const data = exportText();
+  try {
+    const downloads = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
+    if (downloads) { await downloads.save({ filename, data }); say('Saved.'); return; }
+  } catch (err) {
+    if (err && err.code === 'declined') return;
+  }
+  const a = el('a', { href: URL.createObjectURL(new Blob([data], { type: 'text/plain' })), download: filename });
+  document.body.append(a); a.click(); a.remove();
+  say('Saved to your downloads.');
+});
+render();
+</script>

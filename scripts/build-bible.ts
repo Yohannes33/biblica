@@ -13,7 +13,8 @@
 //
 // A verse the translation leaves out is "" (the BSB omits verses absent from
 // the oldest manuscripts, such as Matthew 17:21). A verse whose text our
-// source lost is null (see DAMAGED_RANGES). A New-Testament-only translation
+// source lost is null (see DAMAGED_RANGES) unless a native reader has
+// confirmed where it belongs (see REPAIRS). A New-Testament-only translation
 // has no Old Testament files. Needs Node 23.6+ (runs .ts directly) and `unzip`.
 
 import { execFileSync } from 'node:child_process';
@@ -63,6 +64,99 @@ const DAMAGED_RANGES = new Set(['AMH']);
 const MISNUMBERED: Record<string, { book: string; chapter: number; start: number; end: number }[]> = {
   AMH: [{ book: 'JHN', chapter: 1, start: 41, end: 52 }],
 };
+
+// Proposed repairs for the verses nulled above: which verse the surviving text
+// of each damaged place belongs to. Only entries a native reader has confirmed
+// (confirmed: true, confirmedBy set) are applied; the rest stay null.
+const REPAIRS: Record<string, string> = {
+  AMH: join(ROOT, 'scripts', 'amharic-repairs.json'),
+};
+
+interface Repair {
+  ref: string; // where the source puts the text: "JHN 3:14-16", "JHN 1:41"
+  kind: 'combined' | 'misnumbered' | 'latin';
+  sourceText: string; // the text exactly as the build parses it from the source
+  proposedVerse: string; // "JHN 3:16"
+  correctedText?: string | null; // replaces sourceText (for a garbled word)
+  confirmed: boolean;
+  confirmedBy: string | null;
+}
+
+function parseRef(ref: string) {
+  const m = ref.match(/^([1-3A-Z]{3}) (\d+):(\d+)(?:-(\d+))?$/);
+  if (!m) throw new Error(`Bad reference "${ref}"`);
+  const start = Number(m[3]);
+  return { book: m[1], chapter: Number(m[2]), start, end: m[4] ? Number(m[4]) : start };
+}
+
+function loadRepairs(trId: string): Repair[] {
+  const path = REPAIRS[trId];
+  if (!path) return [];
+  const repairs: Repair[] = JSON.parse(readFileSync(path, 'utf8'));
+  const refs = new Set<string>();
+  for (const r of repairs) {
+    const where = `${trId} ${r.ref}`;
+    if (refs.has(r.ref)) throw new Error(`${where}: listed twice`);
+    refs.add(r.ref);
+    if (!BIBLE_BOOKS.some((b) => b.code === parseRef(r.ref).book)) throw new Error(`${where}: unknown book`);
+    if (typeof r.confirmed !== 'boolean') throw new Error(`${where}: confirmed must be true or false`);
+    if (r.confirmed && !r.confirmedBy?.trim()) throw new Error(`${where}: confirmed without confirmedBy`);
+    if (r.correctedText != null && r.kind !== 'latin') throw new Error(`${where}: only a latin repair may have correctedText`);
+  }
+  return repairs;
+}
+
+/**
+ * Writes confirmed repairs into `book` (already nulled). `parsed` and `ranges`
+ * are the book as the source has it; every entry, confirmed or not, must still
+ * match them, so an updated source is reviewed again instead of silently restored.
+ */
+function applyRepairs(trId: string, code: string, book: Book, parsed: Book, ranges: VerseRange[], repairs: Repair[]): number {
+  let applied = 0;
+  for (const r of repairs) {
+    const at = parseRef(r.ref);
+    if (at.book !== code) continue;
+    const where = `${trId} ${r.ref}`;
+    const source = parsed[at.chapter - 1]?.[at.start - 1];
+    const damaged =
+      r.kind === 'combined'
+        ? ranges.some((g) => g.chapter === at.chapter && g.start === at.start && g.end === at.end)
+        : r.kind === 'misnumbered'
+          ? at.end === at.start &&
+            (MISNUMBERED[trId] ?? []).some((m) => m.book === code && m.chapter === at.chapter && at.start >= m.start && at.start <= m.end)
+          : r.kind === 'latin' && at.end === at.start && /[A-Za-z]/.test(source ?? '');
+    if (!damaged) throw new Error(`${where}: not a ${r.kind} place in the source; review this repair again`);
+    if (source !== r.sourceText) {
+      throw new Error(`${where}: sourceText no longer matches the source; review this repair again`);
+    }
+    if (r.confirmed !== true) continue;
+    const to = parseRef(r.proposedVerse);
+    const allowed =
+      r.kind === 'combined' ? to.start >= at.start && to.start <= at.end
+      : r.kind === 'misnumbered' ? to.start === at.start - 1
+      : to.start === at.start;
+    if (to.book !== code || to.chapter !== at.chapter || to.end !== to.start || !allowed) {
+      throw new Error(`${where}: ${r.kind} repair cannot move text to ${r.proposedVerse}`);
+    }
+    const text = (r.correctedText ?? r.sourceText).trim();
+    if (!text || /[A-Za-z]/.test(text)) throw new Error(`${where}: repaired text is empty or has Latin letters`);
+    if (r.kind === 'latin') {
+      // Only the garbled word, and the word before it, may change.
+      const words = r.sourceText.split(' ');
+      const i = words.findIndex((w) => /[A-Za-z]/.test(w));
+      const before = words.slice(0, Math.max(0, i - 1)).join(' ');
+      const after = words.slice(i + 1).join(' ');
+      if (!text.startsWith(before) || !text.endsWith(after) || text.length <= before.length + after.length + 1) {
+        throw new Error(`${where}: correctedText must be the whole verse with only the garbled word fixed`);
+      }
+    }
+    const verses = book[to.chapter - 1];
+    if (verses[to.start - 1] !== null) throw new Error(`${where}: ${r.proposedVerse} already has text`);
+    verses[to.start - 1] = text;
+    applied++;
+  }
+  return applied;
+}
 
 function download(sourceId: string): string {
   const dir = join(CACHE_DIR, sourceId);
@@ -181,6 +275,8 @@ function main() {
     let verses = 0;
     let missing = 0;
     let unavailable = 0;
+    let restored = 0;
+    const repairs = loadRepairs(tr.id);
 
     for (const meta of BIBLE_BOOKS) {
       if (tr.newTestamentOnly && !isNewTestament(meta)) continue;
@@ -191,6 +287,7 @@ function main() {
         const r = ranges[0];
         throw new Error(`${tr.id} ${meta.code} ${r.chapter}:${r.start}-${r.end}: combined verses; decide how to store them`);
       }
+      const parsed: Book = book.map((verses) => [...verses]);
       for (const r of ranges) {
         for (let v = r.start; v <= r.end; v++) book[r.chapter - 1][v - 1] = null;
       }
@@ -207,6 +304,7 @@ function main() {
           });
         }
       }
+      restored += applyRepairs(tr.id, meta.code, book, parsed, ranges, repairs);
       if (book.length !== meta.chapters) {
         throw new Error(`${tr.id} ${meta.code}: ${book.length} chapters, expected ${meta.chapters}`);
       }
@@ -252,6 +350,7 @@ function main() {
     }
     console.log(
       `${tr.id}: ${verses} verses, ${missing} absent, ${unavailable} unavailable, ` +
+        (repairs.length ? `${restored}/${repairs.length} repairs applied, ` : '') +
         `${Object.keys(curated[tr.id]).length}/${CURATED_VERSES.length} built-in`
     );
   }
