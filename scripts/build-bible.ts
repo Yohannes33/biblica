@@ -8,18 +8,19 @@
 // BIBLE_DATA_VERSION instead (or pass --force before a version is deployed).
 //
 // Output (committed, served as static files):
-//   public/bible/<BIBLE_DATA_VERSION>/<TR>/<BOOK>.json   string[][]: [chapter-1][verse-1] -> text
+//   public/bible/<BIBLE_DATA_VERSION>/<TR>/<BOOK>.json   (string|null)[][]: [chapter-1][verse-1] -> text
 //   src/data/curatedText.json                              built-in verses in every translation
 //
-// A missing verse is "" (the BSB leaves out verses absent from the oldest
-// manuscripts, such as Matthew 17:21). Needs Node 23.6+ (runs .ts directly)
-// and the `unzip` command.
+// A verse the translation leaves out is "" (the BSB omits verses absent from
+// the oldest manuscripts, such as Matthew 17:21). A verse whose text our
+// source lost is null (see DAMAGED_RANGES). A New-Testament-only translation
+// has no Old Testament files. Needs Node 23.6+ (runs .ts directly) and `unzip`.
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { BIBLE_BOOKS } from '../src/data/bibleBooks.ts';
+import { BIBLE_BOOKS, isNewTestament } from '../src/data/bibleBooks.ts';
 import { BIBLE_DATA_VERSION, TRANSLATIONS } from '../src/data/translations.ts';
 import { CURATED_VERSES } from '../src/data/curatedVerses.ts';
 
@@ -41,7 +42,27 @@ const SKIP_SPAN = new Set(['ca', 'va', 'vp', 'fig']);
 // Paragraph and poetry markers: they end a heading and break words apart.
 const PARAGRAPH = /^(p|m|po|pr|pc|pm|pmo|pmc|pmr|pi\d?|mi|nb|cls|li\d?|lh|lf|lim\d?|q\d?|qr|qc|qm\d?|qd|b|tr|tc\d?|th\d?|tcr\d?|thr\d?)$/;
 
-type Book = string[][];
+type Book = (string | null)[][];
+interface VerseRange {
+  chapter: number;
+  start: number;
+  end: number;
+}
+
+// The Amharic e-text marks 3-5 verses as printed together (\v 14-16) in 254
+// places but keeps only one verse's words, sometimes the first verse and
+// sometimes the last: John 3:14-16 holds only 3:16, Matthew 28:18-20 only
+// 28:18. Which verse survived can't be told from the data, so every verse in
+// such a range is null until a native reader confirms where the text belongs.
+// Any other source with ranges stops the build until someone decides.
+const DAMAGED_RANGES = new Set(['AMH']);
+
+// Verses the source numbers one off from every other edition. Amharic John 1
+// has 52 verses: after the damaged 1:38-40, 1:41 holds standard 1:40 (Andrew),
+// through 1:52 holding 1:51. Null them until a native reader confirms.
+const MISNUMBERED: Record<string, { book: string; chapter: number; start: number; end: number }[]> = {
+  AMH: [{ book: 'JHN', chapter: 1, start: 41, end: 52 }],
+};
 
 function download(sourceId: string): string {
   const dir = join(CACHE_DIR, sourceId);
@@ -56,8 +77,9 @@ function download(sourceId: string): string {
   return dir;
 }
 
-export function parseUsfm(source: string): Book {
-  const book: Book = [];
+export function parseUsfm(source: string): { book: Book; ranges: VerseRange[] } {
+  const book: string[][] = [];
+  const ranges: VerseRange[] = [];
   // Footnotes, endnotes and cross references, which may span lines.
   let text = source.replace(/\\(f|fe|ef|x|ex)\s[\s\S]*?\\\1\*/g, ' ');
   // Word-level markup keeps only the word: \w grace|strong="G5485"\w* -> grace
@@ -71,7 +93,7 @@ export function parseUsfm(source: string): Book {
 
   const append = (chunk: string) => {
     if (pending) {
-      const m = chunk.match(/^\s*(\d+)(?:-\d+)?[a-z]?\s?/);
+      const m = chunk.match(/^\s*(\d+)(?:-(\d+))?[a-z]?\s?/);
       if (!m) throw new Error(`Expected a number after \\${pending}: ${chunk.slice(0, 40)}`);
       const n = Number(m[1]);
       if (pending === 'c') {
@@ -80,6 +102,7 @@ export function parseUsfm(source: string): Book {
         book[chapter - 1] ??= [];
       } else {
         verse = n;
+        if (m[2] && Number(m[2]) > n) ranges.push({ chapter, start: n, end: Number(m[2]) });
       }
       pending = null;
       chunk = chunk.slice(m[0].length);
@@ -116,11 +139,13 @@ export function parseUsfm(source: string): Book {
   }
   append(text.slice(last));
 
-  return book.map((verses) =>
+  const cleaned: Book = book.map((verses) =>
     // ¶ is the KJV's paragraph sign, not part of the wording.
     Array.from(verses, (v) =>
       (v ?? '')
         .replace(/¶/g, ' ')
+        // The Amharic e-text leaves inline footnote callers: ዲናር*ፍ1*
+        .replace(/\*ፍ\d+\*/g, '')
         .replace(/\s+/g, ' ')
         // Removed footnotes leave a gap before punctuation: "Dara —five", "( Now".
         .replace(/\s+([,.;:!?’”)\]—])/g, '$1')
@@ -128,14 +153,16 @@ export function parseUsfm(source: string): Book {
         .trim()
     )
   );
+  return { book: cleaned, ranges };
 }
 
-function verseText(book: Book, chapter: number, range: string): string {
+/** The passage's text, or null when any verse in it is absent or unavailable. */
+function verseText(book: Book, chapter: number, range: string): string | null {
   const [start, end = start] = range.split('-').map(Number);
   const out: string[] = [];
   for (let v = start; v <= end; v++) {
     const t = book[chapter - 1]?.[v - 1];
-    if (!t) throw new Error(`Missing ${chapter}:${v}`);
+    if (!t) return null;
     out.push(t);
   }
   return out.join(' ');
@@ -143,6 +170,7 @@ function verseText(book: Book, chapter: number, range: string): string {
 
 function main() {
   const outputs = new Map<string, string>(); // path -> contents
+  const kjvBooks = new Map<string, Book>(); // versification reference for other texts
   const curated: Record<string, Record<string, string>> = {};
 
   for (const tr of TRANSLATIONS) {
@@ -152,31 +180,80 @@ function main() {
     const books = new Map<string, Book>();
     let verses = 0;
     let missing = 0;
+    let unavailable = 0;
 
     for (const meta of BIBLE_BOOKS) {
+      if (tr.newTestamentOnly && !isNewTestament(meta)) continue;
       const file = files.find((f) => new RegExp(`^\\d+-${meta.code}`).test(f));
       if (!file) throw new Error(`${tr.id}: no USFM file for ${meta.code}`);
-      const book = parseUsfm(readFileSync(join(dir, file), 'utf8'));
+      const { book, ranges } = parseUsfm(readFileSync(join(dir, file), 'utf8'));
+      if (ranges.length && !DAMAGED_RANGES.has(tr.id)) {
+        const r = ranges[0];
+        throw new Error(`${tr.id} ${meta.code} ${r.chapter}:${r.start}-${r.end}: combined verses; decide how to store them`);
+      }
+      for (const r of ranges) {
+        for (let v = r.start; v <= r.end; v++) book[r.chapter - 1][v - 1] = null;
+      }
+      for (const r of MISNUMBERED[tr.id] ?? []) {
+        if (r.book !== meta.code) continue;
+        for (let v = r.start; v <= r.end; v++) book[r.chapter - 1][v - 1] = null;
+      }
+      // Latin letters inside Ethiopic text are transliteration errors in the
+      // e-text ("የሚፈርድ Avረ", 1 Corinthians 10:29): treat the verse as lost.
+      if (tr.language === 'am') {
+        for (const verses of book) {
+          verses.forEach((v, i) => {
+            if (v && /[A-Za-z]/.test(v)) verses[i] = null;
+          });
+        }
+      }
       if (book.length !== meta.chapters) {
         throw new Error(`${tr.id} ${meta.code}: ${book.length} chapters, expected ${meta.chapters}`);
       }
       for (const [c, chapterVerses] of book.entries()) {
         if (!chapterVerses?.length) throw new Error(`${tr.id} ${meta.code} ${c + 1}: empty chapter`);
         for (const v of chapterVerses) {
+          if (v === null) {
+            unavailable++;
+            continue;
+          }
           if (/[\\|]/.test(v)) throw new Error(`${tr.id} ${meta.code} ${c + 1}: markup left in "${v}"`);
           if (v) verses++;
           else missing++;
         }
       }
+      // A non-English text with more verses in a chapter than the KJV is
+      // probably shifted (as Amharic John 1 was): every extra verse must be null.
+      const reference = kjvBooks.get(meta.code);
+      if (reference && tr.id !== 'KJV') {
+        book.forEach((verses, c) => {
+          const extra = verses.slice(reference[c].length);
+          if (tr.language !== 'en' && extra.some((v) => v !== null)) {
+            throw new Error(
+              `${tr.id} ${meta.code} ${c + 1}: ${verses.length} verses, KJV has ${reference[c].length}. ` +
+                'Check for misnumbered verses (see MISNUMBERED).'
+            );
+          }
+        });
+      }
+      if (tr.id === 'KJV') kjvBooks.set(meta.code, book);
       books.set(meta.code, book);
       outputs.set(join(outDir, `${meta.code}.json`), JSON.stringify(book));
     }
 
+    // A built-in verse this translation lacks is left out here; the app shows
+    // it in FALLBACK_TRANSLATION instead.
     curated[tr.id] = {};
     for (const cv of CURATED_VERSES) {
-      curated[tr.id][cv.id] = verseText(books.get(cv.book)!, cv.chapter, cv.verses);
+      const book = books.get(cv.book);
+      const text = book ? verseText(book, cv.chapter, cv.verses) : null;
+      if (text) curated[tr.id][cv.id] = text;
+      else if (!tr.newTestamentOnly && !DAMAGED_RANGES.has(tr.id)) throw new Error(`${tr.id}: no text for ${cv.id}`);
     }
-    console.log(`${tr.id}: ${verses} verses, ${missing} absent`);
+    console.log(
+      `${tr.id}: ${verses} verses, ${missing} absent, ${unavailable} unavailable, ` +
+        `${Object.keys(curated[tr.id]).length}/${CURATED_VERSES.length} built-in`
+    );
   }
 
   const changed = [...outputs].filter(([path, text]) => existsSync(path) && readFileSync(path, 'utf8') !== text);

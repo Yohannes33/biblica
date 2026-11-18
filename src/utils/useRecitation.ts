@@ -30,6 +30,7 @@ const ERRORS: Record<string, string> = {
   'no-speech': 'Didn’t hear anything. Tap Recite and start speaking.',
   network: 'Reciting needs an internet connection.',
   'audio-capture': 'No microphone was found.',
+  'language-not-supported': 'This device can’t recognise speech in this language.',
 };
 
 /**
@@ -51,11 +52,11 @@ export function useRecitation(onDone: (transcript: string) => void) {
   // Some engines end without promoting the last interim result to final.
   const interimRef = useRef('');
 
-  const start = useCallback(() => {
+  const start = useCallback((language: 'en' | 'am' = 'en') => {
     const Ctor = getCtor();
     if (!Ctor || rec.current) return;
     const r = new Ctor();
-    r.lang = 'en-US';
+    r.lang = language === 'am' ? 'am-ET' : 'en-US';
     r.continuous = true;
     r.interimResults = true;
     finalText.current = '';
@@ -119,7 +120,33 @@ export function useRecitation(onDone: (transcript: string) => void) {
 
 // ---------- scoring ----------
 
-const normalize = (w: string) => w.toLowerCase().replace(/[’‘]/g, "'").replace(/[^a-z0-9']/g, '');
+// Amharic writes some sounds with several letters: the 1962 text has ሥራ, ዓለም,
+// ኃይል, ጸሎት where a recogniser may write ስራ, አለም, ሀይል, ፀሎት. Each Ethiopic
+// consonant is a run of 8 code points (one per vowel), so fold whole runs.
+const ETHIOPIC_FOLD: Record<number, number> = {
+  0x1210: 0x1200, // ሐ -> ሀ
+  0x1280: 0x1200, // ኀ -> ሀ
+  0x1220: 0x1230, // ሠ -> ሰ
+  0x12d0: 0x12a0, // ዐ -> አ
+  0x1340: 0x1338, // ፀ -> ጸ
+};
+function foldEthiopic(w: string): string {
+  return Array.from(w, (ch) => {
+    const cp = ch.codePointAt(0)!;
+    if (cp < 0x1200 || cp > 0x137f) return ch;
+    const run = cp - (cp % 8);
+    const base = ETHIOPIC_FOLD[run] ?? run;
+    let vowel = cp - run;
+    // ሀ/ሃ and አ/ኣ sound the same.
+    if ((base === 0x1200 || base === 0x12a0) && vowel === 3) vowel = 0;
+    return String.fromCodePoint(base + vowel);
+  }).join('');
+}
+
+// Keep letters of any script (Ethiopic too); drop punctuation such as ። and ፥.
+const normalize = (w: string) =>
+  foldEthiopic(w.toLowerCase().replace(/[’‘]/g, "'").replace(/[^\p{L}\p{M}\p{N}']/gu, ''));
+const isEthiopic = (w: string) => /[\u1200-\u137f]/.test(w);
 const stem = (w: string) => (w.length > 4 ? w.replace(/(eth|est|ing|ed|th|s)$/, '') : w);
 
 function editDistance(a: string, b: string) {
@@ -135,7 +162,9 @@ function editDistance(a: string, b: string) {
 function sameWord(a: string, b: string) {
   if (a === b || stem(a) === stem(b)) return true;
   const longest = Math.max(a.length, b.length);
-  return longest >= 4 && editDistance(a, b) <= (longest > 7 ? 2 : 1);
+  // An Ethiopic letter is a whole syllable, so Amharic words are short: allow a slip from 3.
+  const minLength = isEthiopic(a) ? 3 : 4;
+  return longest >= minLength && editDistance(a, b) <= (longest > 7 ? 2 : 1);
 }
 
 export interface RecitationResult {

@@ -258,15 +258,16 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
       <Section
         title="Default translation"
-        footer={`${selectedTranslation.name}: ${selectedTranslation.blurb.toLowerCase()}. The built-in verses use it.`}
+        footer={`${selectedTranslation.name}. ${selectedTranslation.blurb}.${
+          selectedTranslation.newTestamentOnly ? '' : ' The built-in verses use it.'
+        }`}
       >
-        <div className="grid grid-cols-3 gap-2" role="group" aria-label="Default translation">
-          {TRANSLATIONS.map(({ id, name }) => (
+        <div className="grid grid-cols-4 gap-2" role="group" aria-label="Default translation">
+          {TRANSLATIONS.map(({ id, label, name, language }) => (
             <button
               key={id}
               type="button"
               aria-pressed={translation === id}
-              aria-label={`${id}, ${name}`}
               onClick={() => {
                 setTranslation(id);
                 onUpdateProfile({ ...profile, preferredTranslation: id });
@@ -275,7 +276,9 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 translation === id ? 'bg-ink text-canvas' : 'bg-surface text-ink-2 ring-1 ring-line hover:bg-surface-2'
               }`}
             >
-              {id}
+              {/* Visible label in its own language; the English name follows for screen readers. */}
+              <span lang={language}>{label}</span>
+              <span className="sr-only">, {name}</span>
             </button>
           ))}
         </div>
@@ -377,6 +380,17 @@ export const AccountModal: React.FC<AccountModalProps> = ({
           <Download className="h-5 w-5" strokeWidth={2.25} />
           Download backup
         </button>
+      </Section>
+
+      {/* The Amharic text's licence requires its full copyright statement in the app. */}
+      <Section title="Bible texts">
+        <ul className="flex flex-col gap-3 px-1 text-sm leading-relaxed text-ink-2">
+          {TRANSLATIONS.map(({ id, name, credit }) => (
+            <li key={id}>
+              <span className="font-semibold text-ink">{name}.</span> {credit}
+            </li>
+          ))}
+        </ul>
       </Section>
       <p className="px-1 text-xs leading-relaxed text-ink-3">
         Avatars:{' '}

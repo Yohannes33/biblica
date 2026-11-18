@@ -4,6 +4,7 @@ import type { Verse, VerseProgress } from '../../types/verse';
 import { playSound } from '../../utils/audio';
 import { fireCelebrationConfetti } from '../../utils/confetti';
 import { useSpeech } from '../../utils/useSpeech';
+import { languageOf, translationLabel } from '../../data/translations';
 import { scoreRecitation, useRecitation, type RecitationResult } from '../../utils/useRecitation';
 import {
   buildReviewQueue,
@@ -78,6 +79,7 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
     }
   });
   const canRecite = recite.supported && flipMode === 'ref-to-text';
+  const lang = currentVerse ? languageOf(currentVerse.translation) : 'en';
 
   const { stop: stopSpeech, clearError: clearSpeechError } = speech;
   const { cancel: cancelRecite, clearError: clearReciteError } = recite;
@@ -287,10 +289,14 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
             )}
             {flipMode === 'ref-to-text' ? (
               <>
-                <span className="font-display text-4xl font-extrabold tracking-tight sm:text-5xl">{currentVerse.reference}</span>
-                <span className="pill mt-3 bg-surface-2 text-ink-2">{currentVerse.translation}</span>
+                <span lang={lang} className="font-display text-4xl font-extrabold tracking-tight sm:text-5xl">
+                  {currentVerse.reference}
+                </span>
+                <span lang={lang} className="pill mt-3 bg-surface-2 text-ink-2">
+                  {translationLabel(currentVerse.translation)}
+                </span>
                 {recite.isListening ? (
-                  <span className="mt-5 line-clamp-3 max-w-sm font-scripture text-lg leading-relaxed text-ink-2" aria-live="polite">
+                  <span lang={lang} className="mt-5 line-clamp-3 max-w-sm font-scripture text-lg leading-relaxed text-ink-2" aria-live="polite">
                     {recite.interim || 'Listening…'}
                   </span>
                 ) : (
@@ -302,7 +308,7 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
                   <button
                     type="button"
                     tabIndex={isFlipped ? -1 : 0}
-                    onClick={() => (recite.isListening ? recite.stop() : recite.start())}
+                    onClick={() => (recite.isListening ? recite.stop() : recite.start(lang))}
                     aria-pressed={recite.isListening}
                     className={`btn btn-sm mt-5 ${recite.isListening ? 'btn-primary animate-slot' : 'btn-secondary'}`}
                   >
@@ -313,7 +319,7 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
               </>
             ) : (
               <>
-                <span className="max-h-48 overflow-y-auto font-scripture text-xl leading-relaxed sm:text-2xl">
+                <span lang={lang} className="max-h-48 overflow-y-auto font-scripture text-xl leading-relaxed sm:text-2xl">
                   {currentVerse.text}
                 </span>
                 <span className="mt-6 text-ink-2">Which verse is this?</span>
@@ -341,14 +347,18 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
           >
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate font-display text-xl font-extrabold">{currentVerse.reference}</p>
-                <p className="text-sm text-ink-3">{currentVerse.translation}</p>
+                <p lang={lang} className="truncate font-display text-xl font-extrabold">
+                  {currentVerse.reference}
+                </p>
+                <p lang={lang} className="text-sm text-ink-3">
+                  {translationLabel(currentVerse.translation)}
+                </p>
               </div>
               {speech.supported && (
                 <button
                   type="button"
                   tabIndex={isFlipped ? 0 : -1}
-                  onClick={() => speech.toggle(currentVerse.text)}
+                  onClick={() => speech.toggle(currentVerse.text, lang)}
                   className="icon-btn"
                   aria-pressed={speech.isSpeaking}
                   aria-label={speech.isSpeaking ? 'Stop reading' : 'Read verse aloud'}
@@ -357,7 +367,7 @@ export const FlashcardMode: React.FC<FlashcardModeProps> = ({ verses, progressMa
                 </button>
               )}
             </div>
-            <p className="my-auto max-h-56 overflow-y-auto py-3 text-center font-scripture text-xl leading-relaxed sm:text-2xl">
+            <p lang={lang} className="my-auto max-h-56 overflow-y-auto py-3 text-center font-scripture text-xl leading-relaxed sm:text-2xl">
               {result
                 ? result.words.map((w, i) => (
                     <React.Fragment key={i}>

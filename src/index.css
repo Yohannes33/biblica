@@ -124,7 +124,10 @@
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
   /* SF Pro Rounded on Apple devices; Nunito elsewhere (only downloaded when used). */
   --font-display: ui-rounded, "SF Pro Rounded", "Nunito Variable", system-ui, sans-serif;
-  --font-scripture: ui-serif, "New York", "Iowan Old Style", Charter, Georgia, serif;
+  /* Latin faces first; Ethiopic glyphs fall through to the system's Ethiopic
+     font (Kefa on Apple, Noto on Android/Linux, Nyala or Ebrima on Windows). */
+  --font-scripture: ui-serif, "New York", "Iowan Old Style", Charter, Georgia, "Noto Serif Ethiopic", Kefa,
+    "Abyssinica SIL", Nyala, Ebrima, serif;
 
   --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
 }

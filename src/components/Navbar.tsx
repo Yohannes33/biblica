@@ -1,6 +1,7 @@
 import React from 'react';
 import { BookOpen, ChevronDown, Flame, Shuffle } from 'lucide-react';
 import type { UserStats, Verse } from '../types/verse';
+import { languageOf, translationLabel } from '../data/translations';
 import { getLevelProgress } from '../utils/level';
 import { Ring } from './ui/Progress';
 import { Avatar } from './ui/Avatar';
@@ -36,11 +37,13 @@ export const Navbar: React.FC<NavbarProps> = ({ stats, verse, avatarSeed, title,
               </span>
               <span className="min-w-0">
                 <span className="flex items-center gap-1">
-                  <span className="truncate font-display text-[1.0625rem] leading-tight font-extrabold">{verse.reference}</span>
+                  <span lang={languageOf(verse.translation)} className="truncate font-display text-[1.0625rem] leading-tight font-extrabold">
+                    {verse.reference}
+                  </span>
                   <ChevronDown className="h-4 w-4 shrink-0 text-ink-3" strokeWidth={2.5} />
                 </span>
                 <span className="block truncate text-[0.8125rem] leading-tight text-ink-3">
-                  {verse.translation} · {verse.category}
+                  <span lang={languageOf(verse.translation)}>{translationLabel(verse.translation)}</span> · {verse.category}
                 </span>
               </span>
             </button>

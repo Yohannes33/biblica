@@ -7,6 +7,7 @@ import { analyzeVerseTokens, getBlankIndicesForLevel, STOP_WORDS } from '../../u
 import { useSpeech } from '../../utils/useSpeech';
 import { ProgressBar } from '../ui/Progress';
 import { useRevealOnShow } from '../../utils/useRevealOnShow';
+import { languageOf } from '../../data/translations';
 
 interface FillBlankModeProps {
   verse: Verse;
@@ -37,6 +38,7 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
   const completeRef = useRevealOnShow<HTMLElement>(isCompleted);
 
   const analyzedTokens = useMemo(() => analyzeVerseTokens(verse.text), [verse.text]);
+  const lang = languageOf(verse.translation);
   const blankIndices = useMemo(() => getBlankIndicesForLevel(analyzedTokens, level), [analyzedTokens, level]);
 
   useEffect(() => {
@@ -70,7 +72,8 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
     ];
 
     const fillerDistractors = ['that', 'with', 'unto', 'from', 'shall', 'which', 'upon', 'into'];
-    const chosenPool = isTargetStopWord ? fillerDistractors : theologicalDistractors;
+    // The fallback pools are English: an English word among Amharic choices gives the answer away.
+    const chosenPool = lang !== 'en' ? [] : isTargetStopWord ? fillerDistractors : theologicalDistractors;
 
     const uniqueSet = new Set<string>();
     uniqueSet.add(targetWord);
@@ -84,7 +87,7 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
     }
 
     return Array.from(uniqueSet).sort(() => Math.random() - 0.5);
-  }, [targetWord, analyzedTokens]);
+  }, [targetWord, analyzedTokens, lang]);
 
   const handleSelectWord = (word: string) => {
     if (isCompleted || activeTokenIndex === undefined) return;
@@ -158,7 +161,7 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
             {speech.supported && (
               <button
                 type="button"
-                onClick={() => speech.toggle(verse.text)}
+                onClick={() => speech.toggle(verse.text, lang)}
                 className="icon-btn"
                 aria-pressed={speech.isSpeaking}
                 aria-label={speech.isSpeaking ? 'Stop reading' : 'Read verse aloud'}
@@ -173,7 +176,7 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
           </div>
         </div>
 
-        <p className="font-scripture text-[1.375rem] leading-[2.1] text-ink sm:text-2xl sm:leading-[2.1]">
+        <p lang={lang} className="font-scripture text-[1.375rem] leading-[2.1] text-ink sm:text-2xl sm:leading-[2.1]">
           {analyzedTokens.map((token, idx) => {
             const isBlank = blankIndices.includes(idx);
             const isCurrent = idx === activeTokenIndex && !isCompleted;
@@ -268,6 +271,7 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
               <button
                 key={`${option}-${i}`}
                 type="button"
+                lang={lang}
                 onClick={() => handleSelectWord(option)}
                 className={`tile min-h-14 px-3 py-3 font-display text-lg font-bold ${
                   wrongWord === option ? 'tile-wrong animate-shake' : ''

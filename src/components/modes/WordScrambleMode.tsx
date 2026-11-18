@@ -5,6 +5,7 @@ import { playSound } from '../../utils/audio';
 import { fireCelebrationConfetti } from '../../utils/confetti';
 import { ProgressBar } from '../ui/Progress';
 import { useRevealOnShow } from '../../utils/useRevealOnShow';
+import { languageOf } from '../../data/translations';
 
 interface WordScrambleModeProps {
   verse: Verse;
@@ -154,10 +155,13 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, sound
         </div>
         {selectedTiles.length === 0 ? (
           <p className="my-auto text-center text-ink-3">
-            Start with the first word of <span className="font-semibold text-ink-2">{verse.reference}</span>
+            Start with the first word of{' '}
+            <span lang={languageOf(verse.translation)} className="font-semibold text-ink-2">
+              {verse.reference}
+            </span>
           </p>
         ) : (
-          <p className="font-scripture text-xl leading-[1.9] sm:text-2xl" aria-live="polite">
+          <p lang={languageOf(verse.translation)} className="font-scripture text-xl leading-[1.9] sm:text-2xl" aria-live="polite">
             {selectedTiles.map((tile, i) => (
               <React.Fragment key={tile.id}>
                 <span className={i === selectedTiles.length - 1 ? 'animate-pop inline-block' : ''}>{tile.word}</span>{' '}
@@ -203,6 +207,7 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, sound
               <button
                 key={tile.id}
                 type="button"
+                lang={languageOf(verse.translation)}
                 onClick={() => handleTileClick(tile)}
                 className={`tile min-h-12 px-4 py-2 font-display text-[1.0625rem] font-bold ${
                   isWrong ? 'tile-wrong animate-shake' : isHint ? 'tile-hint animate-pop' : ''

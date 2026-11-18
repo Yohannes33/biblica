@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, Plus, Check, Trash2, X, RotateCw } from 'lucide-react';
 import type { Verse, VerseCategory, VerseProgress, Translation } from '../types/verse';
-import { TRANSLATIONS } from '../data/translations';
+import { languageOf, translationInfo, translationLabel, TRANSLATIONS } from '../data/translations';
 import { formatReference, getPassage, parseReference } from '../lib/bible';
 import { Sheet } from './ui/Sheet';
 
@@ -74,7 +74,8 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
 
   const parsed = useMemo(() => (customRef.trim() ? parseReference(customRef) : null), [customRef]);
   const passageRef = parsed?.ok ? parsed.ref : null;
-  const reference = passageRef ? formatReference(passageRef) : '';
+  const formInfo = translationInfo(customTranslation);
+  const reference = passageRef ? formatReference(passageRef, formInfo.language) : '';
   const lookupKey = passageRef ? `${customTranslation} ${reference} ${retryCount}` : '';
 
   useEffect(() => {
@@ -109,6 +110,8 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
     return verses.filter((v) => {
       const matchesSearch =
         v.reference.toLowerCase().includes(q) ||
+        // Amharic references use Amharic names; v.book keeps the English one.
+        `${v.book} ${v.chapter}:${v.verseNum}`.toLowerCase().includes(q) ||
         v.text.toLowerCase().includes(q) ||
         v.tags?.some((t) => t.toLowerCase().includes(q));
       const matchesCat =
@@ -140,7 +143,13 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
 
   let preview: React.ReactNode;
   if (!parsed || (!parsed.ok && isTyping)) {
-    preview = <p className="text-sm text-ink-3">Any verse from Genesis to Revelation, up to 10 in a row.</p>;
+    preview = (
+      <p className="text-sm text-ink-3">
+        {formInfo.newTestamentOnly
+          ? `Any verse from Matthew to Revelation, up to 10 in a row. Type ዮሐንስ 14:6 or John 14:6.`
+          : 'Any verse from Genesis to Revelation, up to 10 in a row.'}
+      </p>
+    );
   } else if (!parsed.ok) {
     preview = <p className="text-sm font-semibold text-danger-ink">{parsed.error}</p>;
   } else if (!current) {
@@ -161,9 +170,11 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
     preview = (
       <figure className="rounded-xl bg-surface-2 p-3">
         <figcaption className="mb-1 font-display text-sm font-extrabold text-ink-2">
-          {reference} · {customTranslation}
+          <span lang={formInfo.language}>{reference}</span> · <span lang={formInfo.language}>{formInfo.label}</span>
         </figcaption>
-        <blockquote className="font-scripture leading-relaxed text-ink">{current.text}</blockquote>
+        <blockquote lang={formInfo.language} className="font-scripture leading-relaxed text-ink">
+          {current.text}
+        </blockquote>
         {isDuplicate && <p className="mt-2 text-sm font-semibold text-ink-2">Already in your library.</p>}
       </figure>
     );
@@ -215,19 +226,19 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
           </label>
           <fieldset className="flex flex-col gap-1.5">
             <legend className="mb-1.5 text-sm font-semibold text-ink-2">Translation</legend>
-            <div className="grid grid-cols-3 gap-2">
-              {TRANSLATIONS.map(({ id, name }) => (
+            <div className="grid grid-cols-4 gap-2">
+              {TRANSLATIONS.map(({ id, label, name, language }) => (
                 <button
                   key={id}
                   type="button"
                   aria-pressed={customTranslation === id}
-                  aria-label={`${id}, ${name}`}
                   onClick={() => setCustomTranslation(id)}
                   className={`min-h-11 rounded-xl font-display font-extrabold transition-colors ${
                     customTranslation === id ? 'bg-ink text-canvas' : 'bg-surface text-ink-2 ring-1 ring-line hover:bg-surface-2'
                   }`}
                 >
-                  {id}
+                  <span lang={language}>{label}</span>
+                  <span className="sr-only">, {name}</span>
                 </button>
               ))}
             </div>
@@ -324,8 +335,12 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                   }`}
                 >
                   <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="font-display text-[1.0625rem] font-extrabold">{verse.reference}</span>
-                    <span className="text-sm text-ink-3">{verse.translation}</span>
+                    <span lang={languageOf(verse.translation)} className="font-display text-[1.0625rem] font-extrabold">
+                      {verse.reference}
+                    </span>
+                    <span lang={languageOf(verse.translation)} className="text-sm text-ink-3">
+                      {translationLabel(verse.translation)}
+                    </span>
                     {isCurrent && (
                       <span className="pill bg-brand py-0.5 text-on-brand">
                         <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />
@@ -333,7 +348,9 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                       </span>
                     )}
                   </span>
-                  <span className="line-clamp-2 font-scripture leading-relaxed text-ink-2">{verse.text}</span>
+                  <span lang={languageOf(verse.translation)} className="line-clamp-2 font-scripture leading-relaxed text-ink-2">
+                    {verse.text}
+                  </span>
                   <span className="flex items-center gap-2 text-sm text-ink-3">
                     <span className={`pill py-0.5 ${m.cls}`}>
                       {m.label}

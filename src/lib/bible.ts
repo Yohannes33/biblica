@@ -1,12 +1,14 @@
-import { BIBLE_BOOKS, referenceBookName, type BibleBook } from '../data/bibleBooks';
-import { BIBLE_DATA_VERSION, type Translation } from '../data/translations';
+import { BIBLE_BOOKS, isNewTestament, referenceBookName, type BibleBook } from '../data/bibleBooks';
+import { BIBLE_DATA_VERSION, translationInfo, type Translation } from '../data/translations';
 
 // The whole Bible ships as static JSON, one file per book per translation
 // (built by scripts/build-bible.ts). Files are immutable for a given
 // BIBLE_DATA_VERSION: the CDN and the service worker cache them for good,
 // so a book downloads once and then works offline.
 
-type BookText = string[][]; // [chapter - 1][verse - 1]; "" = verse absent in this translation
+// [chapter - 1][verse - 1]. "" = the translation leaves the verse out;
+// null = our digital copy lost the verse's text (see scripts/build-bible.ts).
+type BookText = (string | null)[][];
 
 /** Longest passage the add form accepts: longer ones don't fit the games. */
 export const MAX_PASSAGE_VERSES = 10;
@@ -26,6 +28,11 @@ const BOOK_LOOKUP = new Map<string, BibleBook>();
 for (const book of BIBLE_BOOKS) {
   BOOK_LOOKUP.set(bookKey(book.name), book);
   for (const alias of book.aliases) BOOK_LOOKUP.set(alias, book);
+  for (const name of book.am ? [book.am.name, ...book.am.aliases] : []) {
+    BOOK_LOOKUP.set(bookKey(name), book);
+    // "1ኛ ቆሮንቶስ" is also typed "1 ቆሮንቶስ".
+    BOOK_LOOKUP.set(bookKey(name.replace(/^([1-3])ኛ/, '$1')), book);
+  }
 }
 
 export function findBook(input: string): BibleBook | null {
@@ -39,12 +46,13 @@ export function findBook(input: string): BibleBook | null {
   return matches.size === 1 ? [...matches][0] : null;
 }
 
-/** Parse "Romans 12:1-2", "rom 12 2", "1 Jn 4:19", "Psalm 23:1–3", "Jude 3". */
+/** Parse "Romans 12:1-2", "rom 12 2", "1 Jn 4:19", "Psalm 23:1–3", "Jude 3", "ዮሐንስ 3፡16". */
 export function parseReference(input: string): ParseResult {
-  const text = input.trim().replace(/[‐-―]/g, '-');
-  // book, number, optional -number, then optional :verse and -verse
+  const text = input.trim().replace(/[\u2010-\u2015]/g, '-');
+  // book, number, optional -number, then optional :verse and -verse.
+  // Amharic citations often use ፡ or ፥ where English uses a colon.
   const m = text.match(
-    /^([1-3]?\s*[a-z][a-z\s.]*?)\s*(\d+)(?:\s*-\s*(\d+))?(?:\s*[:.\s]\s*(\d+)(?:\s*-\s*(\d+))?)?\s*$/i
+    /^([1-3]?\s*\p{L}[\p{L}\p{M}\s.]*?)\s*(\d+)(?:\s*-\s*(\d+))?(?:\s*[:.\s\u1361\u1365]\s*(\d+)(?:\s*-\s*(\d+))?)?\s*$/iu
   );
   if (!m) return { ok: false, error: 'Type a book, chapter and verse, like Romans 12:2.' };
 
@@ -85,8 +93,8 @@ export function parseReference(input: string): ParseResult {
   return { ok: true, ref: { book, chapter, start, end } };
 }
 
-export function formatReference({ book, chapter, start, end }: PassageRef): string {
-  return `${referenceBookName(book)} ${chapter}:${start}${end > start ? `-${end}` : ''}`;
+export function formatReference({ book, chapter, start, end }: PassageRef, language: 'en' | 'am' = 'en'): string {
+  return `${referenceBookName(book, language)} ${chapter}:${start}${end > start ? `-${end}` : ''}`;
 }
 
 export class BibleLoadError extends Error {}
@@ -124,15 +132,30 @@ export type PassageResult = { ok: true; text: string } | { ok: false; error: str
 
 /** Look up a passage's text. Rejects with BibleLoadError when the book can't be downloaded. */
 export async function getPassage(translation: Translation, ref: PassageRef): Promise<PassageResult> {
+  const info = translationInfo(translation);
+  if (info.newTestamentOnly && !isNewTestament(ref.book)) {
+    return { ok: false, error: `Only the New Testament of the ${info.name} is available so far.` };
+  }
   const book = await loadBook(translation, ref.book.code);
   const verses = book[ref.chapter - 1] ?? [];
   // Trailing "" entries are verses this translation leaves out, not the chapter's length.
   let count = verses.length;
-  while (count > 0 && !verses[count - 1]) count--;
+  while (count > 0 && verses[count - 1] === '') count--;
   if (ref.end > count) {
     return { ok: false, error: `${referenceBookName(ref.book)} ${ref.chapter} has ${count} verses.` };
   }
   const parts = verses.slice(ref.start - 1, ref.end);
+  const lost = parts.findIndex((v) => v === null);
+  if (lost !== -1) {
+    const n = ref.start + lost;
+    return {
+      ok: false,
+      error:
+        ref.end > ref.start
+          ? `Verse ${n} isn’t available in the ${info.name} yet: our digital copy lost its text. Try a range without it.`
+          : `This verse isn’t available in the ${info.name} yet: our digital copy lost its text.`,
+    };
+  }
   const absent = parts.findIndex((v) => !v);
   if (absent !== -1) {
     return {
