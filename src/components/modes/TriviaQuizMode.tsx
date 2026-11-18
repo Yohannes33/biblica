@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Zap, Trophy, RotateCcw, Check, X } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Zap, Trophy, RotateCcw, Check, X, Play } from 'lucide-react';
 import type { Verse } from '../../types/verse';
 import { playSound } from '../../utils/audio';
 import { fireCelebrationConfetti } from '../../utils/confetti';
@@ -22,19 +22,22 @@ interface Question {
   lang: 'en' | 'am';
 }
 
+type QuizPhase = 'ready' | 'playing' | 'finished';
+
 const QUESTION_COUNT = 5;
 const TIME_LIMIT = 15;
 
 export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEnabled, onFinishQuiz }) => {
+  const [phase, setPhase] = useState<QuizPhase>('ready');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(1);
   const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
-  const [isGameOver, setIsGameOver] = useState(false);
   const [totalXpEarned, setTotalXpEarned] = useState(0);
   const [results, setResults] = useState<boolean[]>([]);
+  const advanceTimerRef = useRef<number | null>(null);
   const t = useT();
   // Answer markers: A–D in English, ሀ ለ ሐ መ in Amharic.
   const letters = Array.from(t('trivia.letters'));
@@ -88,21 +91,44 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
     });
   }, [verses]);
 
-  const startQuiz = useCallback(() => {
-    setQuestions(generateQuestions());
+  const clearAdvanceTimer = useCallback(() => {
+    if (advanceTimerRef.current !== null) {
+      window.clearTimeout(advanceTimerRef.current);
+      advanceTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => clearAdvanceTimer, [clearAdvanceTimer]);
+
+  // Reset to the start screen if the verse library changes (e.g. translation switch)
+  // so questions never go stale and the countdown never starts behind a modal.
+  useEffect(() => {
+    clearAdvanceTimer();
+    setPhase('ready');
+    setQuestions([]);
     setCurrentIdx(0);
     setSelectedAnswer(null);
     setScore(0);
     setCombo(1);
     setTimeLeft(TIME_LIMIT);
-    setIsGameOver(false);
     setTotalXpEarned(0);
     setResults([]);
-  }, [generateQuestions]);
+  }, [verses, clearAdvanceTimer]);
 
-  useEffect(() => {
-    startQuiz();
-  }, [startQuiz]);
+  const startQuiz = useCallback(() => {
+    const nextQuestions = generateQuestions();
+    if (nextQuestions.length === 0) return;
+    clearAdvanceTimer();
+    setQuestions(nextQuestions);
+    setCurrentIdx(0);
+    setSelectedAnswer(null);
+    setScore(0);
+    setCombo(1);
+    setTimeLeft(TIME_LIMIT);
+    setTotalXpEarned(0);
+    setResults([]);
+    setPhase('playing');
+  }, [generateQuestions, clearAdvanceTimer]);
 
   const currentQ = questions[currentIdx];
 
@@ -110,9 +136,11 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
   // has not been committed yet, so reading `score` here would miss the last answer.
   const advance = useCallback(
     (finalScore: number, finalXp: number) => {
-      setTimeout(() => {
+      clearAdvanceTimer();
+      advanceTimerRef.current = window.setTimeout(() => {
+        advanceTimerRef.current = null;
         if (currentIdx + 1 >= questions.length) {
-          setIsGameOver(true);
+          setPhase('finished');
           if (finalScore > 200) {
             playSound.celebrate(soundEnabled);
             fireCelebrationConfetti();
@@ -125,7 +153,7 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
         }
       }, 1300);
     },
-    [currentIdx, onFinishQuiz, questions.length, soundEnabled]
+    [clearAdvanceTimer, currentIdx, onFinishQuiz, questions.length, soundEnabled]
   );
 
   const handleTimeOut = useCallback(() => {
@@ -137,17 +165,17 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
   }, [advance, score, soundEnabled, totalXpEarned]);
 
   useEffect(() => {
-    if (isGameOver || selectedAnswer !== null) return;
+    if (phase !== 'playing' || selectedAnswer !== null) return;
     if (timeLeft <= 0) {
       handleTimeOut();
       return;
     }
-    const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
-    return () => clearInterval(timer);
-  }, [timeLeft, isGameOver, selectedAnswer, handleTimeOut]);
+    const timer = window.setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
+    return () => window.clearInterval(timer);
+  }, [phase, timeLeft, selectedAnswer, handleTimeOut]);
 
   const handleAnswer = (option: string) => {
-    if (selectedAnswer !== null || isGameOver) return;
+    if (phase !== 'playing' || selectedAnswer !== null || !currentQ) return;
     setSelectedAnswer(option);
     const isCorrect = option === currentQ.correctAnswer;
     let nextScore = score;
@@ -175,6 +203,41 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
       </div>
     );
   }
+
+  if (phase === 'ready') {
+    const roundSize = Math.min(QUESTION_COUNT, verses.length);
+    return (
+      <div className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-4">
+        <section className="card animate-rise flex flex-col items-center gap-5 p-6 text-center sm:p-8">
+          <span className="animate-pop grid h-20 w-20 place-items-center rounded-full bg-brand text-[var(--on-brand)] shadow-[0_5px_0_var(--brand-edge)]">
+            <Zap className="h-10 w-10" strokeWidth={2.25} aria-hidden="true" />
+          </span>
+          <div>
+            <h2 className="font-display text-3xl font-extrabold tracking-tight">{t('trivia.readyTitle')}</h2>
+            <p className="mt-1.5 max-w-sm text-ink-2">{t('trivia.readyBody')}</p>
+          </div>
+          <dl className="grid w-full grid-cols-2 gap-3">
+            <div className="rounded-2xl bg-surface-2 p-4">
+              <dt className="text-sm text-ink-3">{t('trivia.questionsLabel')}</dt>
+              <dd className="font-display text-2xl font-extrabold tabular-nums">{roundSize}</dd>
+            </div>
+            <div className="rounded-2xl bg-surface-2 p-4">
+              <dt className="text-sm text-ink-3">{t('trivia.perQuestionLabel')}</dt>
+              <dd className="font-display text-2xl font-extrabold tabular-nums">
+                {t('trivia.secondsShort', { n: TIME_LIMIT })}
+              </dd>
+            </div>
+          </dl>
+          <button type="button" onClick={startQuiz} className="btn btn-primary w-full">
+            <Play className="h-5 w-5 fill-current" aria-hidden="true" />
+            {t('trivia.start')}
+          </button>
+        </section>
+      </div>
+    );
+  }
+
+  const isGameOver = phase === 'finished';
 
   if (!currentQ && !isGameOver) {
     return <div className="py-20 text-center text-ink-3">{t('trivia.preparing')}</div>;
