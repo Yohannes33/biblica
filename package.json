@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "build:bible": "node scripts/build-bible.ts"
+    "build:bible": "node scripts/build-bible.ts",
+    "amharic:sheet": "node scripts/amharic-review.ts sheet",
+    "amharic:apply": "node scripts/amharic-review.ts apply"
   },
   "dependencies": {
     "@dicebear/adventurer-neutral": "^9.4.2",
