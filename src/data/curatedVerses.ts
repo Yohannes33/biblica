@@ -18,7 +18,7 @@ export interface CuratedVerse {
     | 'Hope & Comfort';
   tags: string[];
   // Only in libraries of this language: a stand-in for built-in verses that
-  // language's Bible lacks (the Amharic one has no Old Testament).
+  // language's Bible lacked (the Amharic one had no Old Testament at first).
   language?: 'am';
 }
 
@@ -55,8 +55,9 @@ export const CURATED_VERSES: CuratedVerse[] = [
   { id: 'lam-3-22-23', book: 'LAM', chapter: 3, verses: '22-23', category: 'Hope & Comfort', tags: ['mercy', 'faithfulness'] },
   { id: 'psalm-34-8', book: 'PSA', chapter: 34, verses: '8', category: 'Hope & Comfort', tags: ['goodness', 'trust'] },
 
-  // Amharic stand-ins, one per verse above the Amharic New Testament can't
-  // supply (Old Testament, or text lost in our copy), in the same category.
+  // Amharic stand-ins, one per verse above the Amharic Bible couldn't supply
+  // when it was New Testament only, in the same category. Kept now that it
+  // has the Old Testament too: progress is keyed by these ids.
   { id: 'john-1-1', book: 'JHN', chapter: 1, verses: '1', category: 'Essential Classics', tags: ['word', 'beginning'], language: 'am' },
   { id: 'rom-6-23', book: 'ROM', chapter: 6, verses: '23', category: 'Essential Classics', tags: ['salvation', 'gift'], language: 'am' },
   { id: 'john-14-1', book: 'JHN', chapter: 14, verses: '1', category: 'Peace & Anxiety', tags: ['peace', 'trust'], language: 'am' },

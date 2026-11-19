@@ -3,8 +3,7 @@ import { defineStrings } from './define';
 // The library sheet (library.*), the Bible browser (browser.*) and the
 // reference and passage messages from src/lib/bible.ts (bible.*).
 // {book} and {name} are filled with Amharic names when the interface is
-// Amharic and the book or translation has one; Old Testament books have no
-// Amharic name yet, so they stay English.
+// Amharic and the book or translation has one.
 export const library = defineStrings(
   {
     'library.title': 'Library',

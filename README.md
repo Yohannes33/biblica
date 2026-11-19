@@ -40,7 +40,7 @@ Biblica turns Scripture memorization into an engaging, gamified experience using
 - Curated collection across thematic categories:
   - *Essential Classics*, *Peace & Anxiety*, *Strength & Courage*, *Love & Kindness*, *Faith & Salvation*, *Wisdom & Guidance*, *Hope & Comfort*.
 - **The whole Bible in three translations**: KJV, BSB (Berean Standard Bible) and WEB (World English Bible). The built-in verses follow your default translation.
-- **Amharic New Testament (1962)**: pick አማርኛ to learn verses in Amharic. Every built-in verse is in Amharic: Old Testament ones are swapped for New Testament verses on the same theme.
+- **Amharic Bible (1962)**: pick አማርኛ to learn verses in Amharic, from the Old and New Testaments. Built-in verses whose Amharic text was lost are left out of the Amharic library, which has extra New Testament verses on the same themes.
 - **Add any verse**: type a reference (`Romans 12:1-2`, `1 jn 4:19`, `ps 23:1–3`, `ዮሐንስ 3፡16`) and the text is looked up for you.
 
 ### 6. 🏆 Gamification Engine
@@ -83,7 +83,12 @@ public/bible/v1/<KJV|BSB|WEB|AMH>/<USFM book code>.json   // (string|null)[][]: 
 
 The Amharic New Testament is the 1962 text from eBible.org (`amh`): © 1962, 2003 United Bible Societies, used with the Bible Society of Ethiopia's permission for **non-commercial** use, on condition that the full copyright statement is shown (Settings → Bible texts). Any commercial use of Biblica needs the Bible Society of Ethiopia's written permission first.
 
-The digital text is damaged in 254 places: it marks 3-5 verses as printed together (`\v 14-16`) but keeps only one verse's words, sometimes the first and sometimes the last (John 3:14-16 holds only 3:16). John 1:41-52 are also numbered one too high. Every verse in those places, 857 in all, is stored as `null` and shown as not available rather than under a guessed number. Only the New Testament is available; the Old Testament needs the Bible Society's text.
+The digital text is damaged in 254 places: it marks 3-5 verses as printed together (`\v 14-16`) but keeps only one verse's words, sometimes the first and sometimes the last (John 3:14-16 holds only 3:16). John 1:41-52 are also numbered one too high. Every verse in those places, 857 in all, is stored as `null` and shown as not available rather than under a guessed number.
+
+The Amharic Old Testament is the same 1962 Bible, from [WordProject](https://www.wordproject.org/bibles/am/) (credited in Settings → Bible texts). `npm run build:bible` reads its chapter pages one at a time, 1.5 s apart, and caches them; 1 Kings 21, whose live page repeats chapter 22, comes from WordProject's zip archive. Its text is damaged too, and the same rule applies, so 804 of its 23,145 verses are `null`:
+- An empty verse was printed together with a neighbour, but the text doesn't say which one holds both (usually the next: Genesis 7:3 holds 7:2-3), so the empty verse and the verse on each side are unavailable.
+- A verse with left-over transliteration code (Latin letters, digits) is unavailable, and so are its neighbours when the code is a verse number.
+- Where the text follows the Hebrew numbering (2 Kings 12, Job 40:25-41:26, Song 7, Hosea 2 and 12, Jonah 2), adds verses (Psalm 14:4-10) or keeps a title as a verse (Psalm 140:1), those verses are unavailable rather than shown under the wrong English number.
 
 Restoring them goes through a native Amharic reader. `scripts/amharic-repairs.json` proposes, for each damaged place, the one verse its surviving text belongs to; the build applies only entries marked `confirmed`. To run a review round:
 
