@@ -63,6 +63,7 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
   const t = useT();
   const questionsLabelId = useId();
   const secondsLabelId = useId();
+  const cappedNoteId = useId();
   const roundSize = Math.min(effectiveQuestionPreset(chosenQuestions, verses.length), verses.length);
   // Answer markers: A–D in English, ሀ ለ ሐ መ in Amharic.
   const letters = Array.from(t('trivia.letters'));
@@ -257,7 +258,12 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
               <p id={questionsLabelId} className="mb-1.5 px-1 font-display text-sm font-extrabold text-ink-2">
                 {t('trivia.questionsLabel')}
               </p>
-              <div className="segmented" role="group" aria-labelledby={questionsLabelId}>
+              <div
+                className="segmented"
+                role="group"
+                aria-labelledby={questionsLabelId}
+                aria-describedby={capped ? cappedNoteId : undefined}
+              >
                 {QUESTION_PRESETS.map((count) => {
                   const enabled = questionPresetEnabled(count, verses.length);
                   return (
@@ -276,7 +282,7 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
                 })}
               </div>
               {capped && (
-                <p className="mt-1.5 px-1 text-sm text-ink-2">{t('trivia.capped', { n: verses.length })}</p>
+                <p id={cappedNoteId} className="mt-1.5 px-1 text-sm text-ink-2">{t('trivia.capped', { n: verses.length })}</p>
               )}
             </div>
             <div>
@@ -289,7 +295,6 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
                     key={seconds}
                     type="button"
                     aria-pressed={secondsPerQuestion === seconds}
-                    aria-label={t('trivia.secondsLong', { n: seconds })}
                     onClick={() => chooseSeconds(seconds)}
                     className="tabular-nums"
                   >
