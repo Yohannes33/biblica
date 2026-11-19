@@ -29,10 +29,15 @@ const isInstalled = () =>
   window.matchMedia('(display-mode: standalone)').matches ||
   (navigator as Navigator & { standalone?: boolean }).standalone === true;
 
-// iPhone/iPad have no install event: people add the site from the Share sheet.
-// iPadOS reports itself as a Mac, so check for touch too.
-const isIos = () =>
-  /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+// iPhone/iPad have no install event: people add the site from Safari's Share
+// sheet. iPadOS reports itself as a Mac, so check for touch too. Other iOS
+// browsers and in-app browsers (Instagram, Facebook, Gmail…) may lack "Add to
+// Home Screen", so the steps are shown in Safari only.
+const isIosSafari = () => {
+  const ua = navigator.userAgent;
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  return ios && /safari/i.test(ua) && !/crios|fxios|edgios|opios|fban|fbav|instagram|gsa\/|line\//i.test(ua);
+};
 
 function snoozed(): boolean {
   try {
@@ -57,8 +62,15 @@ export const InstallPrompt: React.FC = () => {
   }, []);
 
   const canPrompt = !!deferredPrompt;
-  const ios = !canPrompt && isIos();
+  const ios = !canPrompt && isIosSafari();
   if (hidden || isInstalled() || (!canPrompt && !ios)) return null;
+
+  // The focused button is about to disappear: move focus to the main content
+  // rather than letting it drop to the top of the page.
+  const hide = () => {
+    document.getElementById('main')?.focus({ preventScroll: true });
+    setHidden(true);
+  };
 
   const dismiss = () => {
     try {
@@ -66,17 +78,21 @@ export const InstallPrompt: React.FC = () => {
     } catch {
       // storage unavailable: hide for this visit only
     }
-    setHidden(true);
+    hide();
   };
 
   const install = async () => {
     const prompt = deferredPrompt;
     if (!prompt) return;
     deferredPrompt = null; // a prompt can be shown only once
-    await prompt.prompt();
-    const { outcome } = await prompt.userChoice;
-    if (outcome === 'accepted') setHidden(true);
-    else dismiss();
+    try {
+      await prompt.prompt();
+      const { outcome } = await prompt.userChoice;
+      if (outcome === 'accepted') hide();
+      else dismiss();
+    } catch {
+      dismiss(); // the browser refused to show it: don't leave a dead button
+    }
   };
 
   return (
@@ -91,9 +107,8 @@ export const InstallPrompt: React.FC = () => {
           </h2>
           {ios ? (
             <p className="mt-1 text-sm text-ink-2">
-              {t('install.iosBefore')}
-              <Share className="mx-1 inline h-4 w-4 align-[-2px]" role="img" aria-label={t('install.share')} />
-              {t('install.iosAfter')}
+              {t('install.iosBefore')} <Share className="inline h-4 w-4 align-[-2px]" aria-hidden="true" />{' '}
+              {t('install.iosAfter').trimStart()}
             </p>
           ) : (
             <p className="mt-1 text-sm text-ink-2">{t('install.body')}</p>

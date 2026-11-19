@@ -17,14 +17,14 @@ A brief proposed for a sibling Next.js project asked for the Bible dataset to be
 
 We do **not** encrypt the Bible files.
 
-- **Nothing secret to protect.** Three translations are public domain and the fourth is freely downloadable from its publisher's partner. The Amharic licence (United Bible Societies / Bible Society of Ethiopia) requires non-commercial use and the full copyright statement shown in the app (Settings → Bible texts), not secrecy.
+- **Nothing secret to protect.** Three translations are public domain and the fourth is freely downloadable from its publisher's partner. The Amharic licence (United Bible Societies / Bible Society of Ethiopia) permits non-commercial use with the full copyright statement shown in the app (Settings → Bible texts), and commercial use with the Society's written permission. It asks for attribution, not secrecy.
 - **Encryption in the browser protects nothing.** Whatever key decrypts the text has to reach the browser too, and the decrypted verse is on screen anyway. AEAD with AAD binding is the right tool for integrity of data at rest on a server or device; it does not stop a reader from copying what they are shown.
 - **Server-only decryption would cost the core feature.** Serving chapters from a function with `Cache-Control: no-store` means no offline reading, no CDN caching (one function call per chapter), cold starts on a phone connection, and a server to run and pay for. Biblica's books download once and then work offline.
 - **Anti-scraping only raises the cost.** Chapters must arrive readable, so a determined scraper still gets them by driving a real browser. User-agent and `Sec-Fetch-*` checks stop only naive scripts.
 
 What we do instead:
 
-- **Integrity through the build.** `scripts/build-bible.ts` builds the files from the publishers' sources and refuses to change already-published files unless `BIBLE_DATA_VERSION` is bumped, so a cached copy can never silently differ from the deployed one.
+- **Integrity through the build.** `scripts/build-bible.ts` builds the files from eBible.org's USFM sources and refuses to change already-published files unless `BIBLE_DATA_VERSION` is bumped or it is run with `--force`. It runs only through `npm run build:bible`, not in `npm run build` or on Vercel, so a hand edit to `public/bible/v1/*.json` would deploy unchecked, and devices that cached the old file would keep it. Change Bible files only through the script, with a version bump.
 - **Immutable, versioned URLs.** `/bible/v1/...` files are served with `Cache-Control: public, max-age=31536000, immutable`.
 - **Not indexed.** The same files carry `X-Robots-Tag: noindex, nofollow, noarchive`, so search engines don't list raw JSON (`vercel.json`).
 - **Attribution.** Every translation's credit is in Settings → Bible texts.
@@ -49,4 +49,4 @@ The PWA already installs on Android (and iOS) and works offline. If a Play Store
 
 ## Out of scope today
 
-An encrypted dataset, a server-side reading API, per-IP rate limiting, bot blocking, Web Push and TWA asset links were all deliberately left out. Each needs a server Biblica doesn't have, and the first four would end offline reading.
+An encrypted dataset, a server-side reading API, per-IP rate limiting, bot blocking, Web Push and TWA asset links were all deliberately left out. A server-side reading API (and decrypting only on a server) would end offline reading. Encrypting with a key shipped to the browser would protect nothing, as above. Rate limiting and bot blocking could be added at Vercel's firewall without a server, and would not affect offline reading, but there is no scraping problem to justify them yet. Web Push and asset links need a sender or an Android app that don't exist.

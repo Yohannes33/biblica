@@ -362,7 +362,7 @@ export function App() {
         onOpenProfile={() => setIsAccountOpen(true)}
       />
 
-      <main id="main" className="pb-tabbar flex flex-1 flex-col">
+      <main id="main" tabIndex={-1} className="pb-tabbar flex flex-1 flex-col outline-none">
         <InstallPrompt />
         {currentTab === 'cloze' && (
           <FillBlankMode
