@@ -122,6 +122,14 @@ export const practice = defineStrings(
     'scramble.playAgain': 'Play again',
     'scramble.words': 'Scrambled words',
 
+    // A passage of several verses, practised one verse at a time.
+    'passage.verseOf': 'Verse {n} of {total}',
+    'passage.verseDone': 'Verse {n} of {total} done',
+    'passage.versesLeft_one': '{n} more verse to finish the passage.',
+    'passage.versesLeft_other': '{n} more verses to finish the passage.',
+    'passage.nextVerse': 'Go to verse {n}',
+    'passage.loading': 'Getting the passage ready…',
+
     'trivia.readyTitle': 'Scripture Trivia',
     'trivia.readyBody': 'Match verses to their references and finish passages before the timer runs out.',
     'trivia.questionsLabel': 'Questions',
@@ -265,6 +273,13 @@ export const practice = defineStrings(
     'scramble.nextVerse': 'ቀጣይ ጥቅስ',
     'scramble.playAgain': 'እንደገና ይጫወቱ',
     'scramble.words': 'የተደባለቁ ቃላት',
+
+    'passage.verseOf': 'ቁጥር {n} ከ{total}',
+    'passage.verseDone': 'ቁጥር {n} ከ{total} ተጠናቋል',
+    'passage.versesLeft_one': 'ክፍሉን ለመጨረስ {n} ቁጥር ቀርቷል።',
+    'passage.versesLeft_other': 'ክፍሉን ለመጨረስ {n} ቁጥሮች ቀርተዋል።',
+    'passage.nextVerse': 'ወደ ቁጥር {n} ይሂዱ',
+    'passage.loading': 'ክፍሉን በማዘጋጀት ላይ…',
 
     'trivia.readyTitle': 'የመጽሐፍ ቅዱስ ጥያቄዎች',
     'trivia.readyBody': 'ጊዜው ከማለቁ በፊት ጥቅሶችን ከማጣቀሻቸው ጋር ያዛምዱ እና የጎደሉትን ክፍሎች ይጨርሱ።',
