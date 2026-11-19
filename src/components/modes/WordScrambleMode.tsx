@@ -7,6 +7,8 @@ import { ProgressBar } from '../ui/Progress';
 import { useRevealOnShow } from '../../utils/useRevealOnShow';
 import { languageOf } from '../../data/translations';
 import { useT } from '../../i18n';
+import { usePassageVerses, type PassageVerse } from '../../utils/usePassageVerses';
+import { PassageLoading, PassageSteps, VerseDone } from './PassageSteps';
 
 interface WordScrambleModeProps {
   verse: Verse;
@@ -28,7 +30,34 @@ const HINTS_PER_VERSE = 3;
 const STREAK_FOR_HINT = 5;
 const MAX_HINTS = 5;
 
-export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, soundEnabled, onCorrect, onNextVerse }) => {
+export const WordScrambleMode: React.FC<WordScrambleModeProps> = (props) => {
+  const passage = usePassageVerses(props.verse);
+  if (passage.loading) return <PassageLoading />;
+  return <ScramblePassage {...props} verses={passage.verses} />;
+};
+
+const shuffledTiles = (text: string): TileItem[] =>
+  text
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w, index) => ({ id: `${index}-${w}`, originalIndex: index, word: w }))
+    .sort(() => Math.random() - 0.5);
+
+/**
+ * A passage of several verses is rebuilt one verse at a time: only the current
+ * verse's words are scrambled. Hints carry over from verse to verse, and XP
+ * comes once, after the last verse.
+ */
+const ScramblePassage: React.FC<WordScrambleModeProps & { verses: PassageVerse[] }> = ({
+  verse,
+  verses,
+  soundEnabled,
+  onCorrect,
+  onNextVerse,
+}) => {
+  // Which verse of the passage, tagged with the wording it belongs to, so a
+  // new wording starts from the first verse in the same render.
+  const [step, setStep] = useState({ run: '', idx: 0 });
   const [selectedTiles, setSelectedTiles] = useState<TileItem[]>([]);
   const [availableTiles, setAvailableTiles] = useState<TileItem[]>([]);
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
@@ -40,14 +69,27 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, sound
   const completeRef = useRevealOnShow<HTMLElement>(isCompleted);
   const t = useT();
 
-  const words = useMemo(() => verse.text.split(/\s+/).filter(Boolean), [verse.text]);
+  const run = verses.map((v) => v.text).join('\n');
+  const verseIdx = step.run === run ? Math.min(step.idx, verses.length - 1) : 0;
+  const isPassage = verses.length > 1;
+  const current = verses[verseIdx];
+  const isLastVerse = verseIdx === verses.length - 1;
+  const lang = languageOf(verse.translation);
 
-  const setupPuzzle = () => {
-    const tiles: TileItem[] = words.map((w, index) => ({ id: `${index}-${w}`, originalIndex: index, word: w }));
-    setAvailableTiles([...tiles].sort(() => Math.random() - 0.5));
+  const words = useMemo(() => current.text.split(/\s+/).filter(Boolean), [current.text]);
+
+  const startVerse = (idx: number) => {
+    setStep({ run, idx });
+    setAvailableTiles(shuffledTiles(verses[idx].text));
     setSelectedTiles([]);
     setIsCompleted(false);
     setHintIndex(null);
+    setWrongTileId(null);
+  };
+
+  // Restart and Play again go back to the passage's first verse with a fresh hint budget.
+  const setupPuzzle = () => {
+    startVerse(0);
     setHintsLeft(HINTS_PER_VERSE);
     setStreak(0);
     setEarnedFlash(false);
@@ -61,7 +103,7 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, sound
 
   useEffect(() => {
     setupPuzzle();
-  }, [verse.id, verse.text]); // text changes when the default translation does
+  }, [verse.id, run]); // the wording changes when the default translation does
 
   const handleTileClick = (tile: TileItem) => {
     if (isCompleted) return;
@@ -90,9 +132,11 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, sound
 
       if (newSelected.length === words.length) {
         setIsCompleted(true);
-        playSound.celebrate(soundEnabled);
-        fireCelebrationConfetti();
-        onCorrect(SCRAMBLE_XP);
+        if (isLastVerse) {
+          playSound.celebrate(soundEnabled);
+          fireCelebrationConfetti();
+          onCorrect(SCRAMBLE_XP);
+        }
       }
     } else {
       playSound.incorrect(soundEnabled);
@@ -148,7 +192,8 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, sound
       )}
 
       {/* Built sentence */}
-      <article className="card flex min-h-44 flex-col p-5 sm:p-6" aria-label={t('scramble.verseLabel', { reference: verse.reference })}>
+      <article className="card flex min-h-44 flex-col p-5 sm:p-6" aria-label={t('scramble.verseLabel', { reference: current.reference })}>
+        {isPassage && <PassageSteps index={verseIdx} total={verses.length} reference={current.reference} lang={lang} />}
         <div className="mb-4 flex items-center gap-3">
           <ProgressBar value={(selectedTiles.length / words.length) * 100} label={t('scramble.wordsPlaced')} className="flex-1" />
           <span className="font-display text-sm font-extrabold text-ink-3 tabular-nums">
@@ -158,13 +203,13 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, sound
         {selectedTiles.length === 0 ? (
           <p className="my-auto text-center text-ink-3">
             {t('scramble.startBefore')}
-            <span lang={languageOf(verse.translation)} className="font-semibold text-ink-2">
-              {verse.reference}
+            <span lang={lang} className="font-semibold text-ink-2">
+              {current.reference}
             </span>
             {t('scramble.startAfter')}
           </p>
         ) : (
-          <p lang={languageOf(verse.translation)} className="font-scripture text-xl leading-[1.9] sm:text-2xl" aria-live="polite">
+          <p lang={lang} className="font-scripture text-xl leading-[1.9] sm:text-2xl" aria-live="polite">
             {selectedTiles.map((tile, i) => (
               <React.Fragment key={tile.id}>
                 <span className={i === selectedTiles.length - 1 ? 'animate-pop inline-block' : ''}>{tile.word}</span>{' '}
@@ -177,7 +222,9 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, sound
         )}
       </article>
 
-      {isCompleted ? (
+      {isCompleted && !isLastVerse ? (
+        <VerseDone key={verseIdx} index={verseIdx} total={verses.length} onNext={() => startVerse(verseIdx + 1)} />
+      ) : isCompleted ? (
         <section
           ref={completeRef}
           className="card animate-rise flex scroll-mb-[calc(var(--tabbar-h)+var(--safe-bottom)+1rem)] flex-col items-center gap-4 border-gold bg-gold-soft p-6 text-center"
@@ -210,7 +257,7 @@ export const WordScrambleMode: React.FC<WordScrambleModeProps> = ({ verse, sound
               <button
                 key={tile.id}
                 type="button"
-                lang={languageOf(verse.translation)}
+                lang={lang}
                 onClick={() => handleTileClick(tile)}
                 className={`tile min-h-12 px-4 py-2 font-display text-[1.0625rem] font-bold ${
                   isWrong ? 'tile-wrong animate-shake' : isHint ? 'tile-hint animate-pop' : ''

@@ -9,6 +9,8 @@ import { ProgressBar } from '../ui/Progress';
 import { useRevealOnShow } from '../../utils/useRevealOnShow';
 import { languageOf } from '../../data/translations';
 import { useT, type StringKey } from '../../i18n';
+import { usePassageVerses, type PassageVerse } from '../../utils/usePassageVerses';
+import { PassageLoading, PassageSteps, VerseDone } from './PassageSteps';
 
 interface FillBlankModeProps {
   verse: Verse;
@@ -29,8 +31,44 @@ const STAGES: { lvl: DifficultyLevel; label: StringKey; hint: StringKey }[] = [
 
 const stageXp = (level: DifficultyLevel) => (level === 4 ? 60 : level * 15);
 
-export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnabled, onCorrect, onNextVerse }) => {
+export const FillBlankMode: React.FC<FillBlankModeProps> = (props) => {
+  // The stage lives out here, above the loading state: a new translation
+  // can send a passage back to loading, and must not lose the stage with it.
   const [level, setLevel] = useState<DifficultyLevel>(1);
+  // Start every new verse back at Stage 1 (Key words), while preserving the
+  // current stage if only the translation wording (`verse.text`) changes.
+  useEffect(() => {
+    setLevel(1);
+  }, [props.verse.id]);
+
+  const passage = usePassageVerses(props.verse);
+  if (passage.loading) return <PassageLoading />;
+  return <FillBlankPassage {...props} verses={passage.verses} level={level} setLevel={setLevel} />;
+};
+
+interface FillBlankPassageProps extends FillBlankModeProps {
+  verses: PassageVerse[];
+  level: DifficultyLevel;
+  setLevel: (level: DifficultyLevel) => void;
+}
+
+/**
+ * A passage of several verses is filled in one verse at a time: blanks and
+ * word choices come from the current verse only. The stage holds for the
+ * whole passage, and XP comes once, after its last verse.
+ */
+const FillBlankPassage: React.FC<FillBlankPassageProps> = ({
+  verse,
+  verses,
+  level,
+  setLevel,
+  soundEnabled,
+  onCorrect,
+  onNextVerse,
+}) => {
+  // Which verse of the passage, tagged with the run it belongs to, so a new
+  // stage or wording starts from the first verse in the same render.
+  const [step, setStep] = useState({ run: '', idx: 0 });
   const [currentBlankIdx, setCurrentBlankIdx] = useState<number>(0);
   const [filledWords, setFilledWords] = useState<Record<number, string>>({});
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
@@ -39,25 +77,31 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
   const speech = useSpeech();
   const completeRef = useRevealOnShow<HTMLElement>(isCompleted);
 
-  const analyzedTokens = useMemo(() => analyzeVerseTokens(verse.text), [verse.text]);
+  // Changes with the stage, and with the wording when the default translation does.
+  const run = `${level}|${verses.map((v) => v.text).join('\n')}`;
+  const verseIdx = step.run === run ? Math.min(step.idx, verses.length - 1) : 0;
+  const isPassage = verses.length > 1;
+  const current = verses[verseIdx];
+  const text = current.text;
+  const isLastVerse = verseIdx === verses.length - 1;
+
+  const analyzedTokens = useMemo(() => analyzeVerseTokens(text), [text]);
+  // The rest of the passage, a reserve of wrong choices for a short verse.
+  // A string, not the array: `verses` is a new array on every render.
+  const otherVersesText = verses.filter((_, i) => i !== verseIdx).map((v) => v.text).join(' ');
+  const otherVerseTokens = useMemo(() => analyzeVerseTokens(otherVersesText), [otherVersesText]);
   const lang = languageOf(verse.translation);
   const blankIndices = useMemo(() => getBlankIndicesForLevel(analyzedTokens, level), [analyzedTokens, level]);
-
-  // Start every new verse back at Stage 1 (Key words), while preserving the
-  // current stage if only the translation wording (`verse.text`) changes.
-  useEffect(() => {
-    setLevel(1);
-  }, [verse.id]);
 
   useEffect(() => {
     setCurrentBlankIdx(0);
     setFilledWords({});
     setIsCompleted(false);
     setWrongWord(null);
-  }, [verse.id, verse.text, level]); // text changes when the default translation does
+  }, [verse.id, text, verseIdx, level]); // text changes when the default translation does
 
   const { stop: stopSpeech } = speech;
-  useEffect(() => stopSpeech(), [verse.id, stopSpeech]);
+  useEffect(() => stopSpeech(), [verse.id, text, stopSpeech]);
 
   const activeTokenIndex = blankIndices[currentBlankIdx];
   const targetToken = activeTokenIndex !== undefined ? analyzedTokens[activeTokenIndex] : null;
@@ -68,10 +112,13 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
 
     const isTargetStopWord = STOP_WORDS.has(targetWord.toLowerCase());
 
-    const otherWords = analyzedTokens
-      .filter((t) => t.cleanWord.toLowerCase() !== targetWord.toLowerCase())
-      .filter((t) => (isTargetStopWord ? t.isStopWord : !t.isStopWord))
-      .map((t) => t.cleanWord);
+    const sameKind = (tokens: typeof analyzedTokens) =>
+      tokens
+        .filter((t) => t.cleanWord.toLowerCase() !== targetWord.toLowerCase())
+        .filter((t) => (isTargetStopWord ? t.isStopWord : !t.isStopWord))
+        .map((t) => t.cleanWord);
+    const otherWords = sameKind(analyzedTokens);
+    const passageWords = sameKind(otherVerseTokens);
 
     const theologicalDistractors = [
       'everlasting', 'righteousness', 'salvation', 'strengtheneth',
@@ -86,7 +133,10 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
     const uniqueSet = new Set<string>();
     uniqueSet.add(targetWord);
 
-    const candidates = [...otherWords, ...chosenPool].sort(() => Math.random() - 0.5);
+    // The rest of the passage only tops up a verse too short to give three
+    // wrong choices of its own (an Amharic verse: there's no fallback pool).
+    const shuffle = (words: string[]) => [...words].sort(() => Math.random() - 0.5);
+    const candidates = [...shuffle([...otherWords, ...chosenPool]), ...shuffle(passageWords)];
     for (const word of candidates) {
       if (uniqueSet.size >= 4) break;
       if (word.toLowerCase() !== targetWord.toLowerCase()) {
@@ -95,7 +145,7 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
     }
 
     return Array.from(uniqueSet).sort(() => Math.random() - 0.5);
-  }, [targetWord, analyzedTokens, lang]);
+  }, [targetWord, analyzedTokens, otherVerseTokens, lang]);
 
   const handleSelectWord = (word: string) => {
     if (isCompleted || activeTokenIndex === undefined) return;
@@ -108,9 +158,11 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
       const nextBlankIdx = currentBlankIdx + 1;
       if (nextBlankIdx >= blankIndices.length) {
         setIsCompleted(true);
-        playSound.celebrate(soundEnabled);
-        fireCelebrationConfetti();
-        onCorrect(stageXp(level));
+        if (isLastVerse) {
+          playSound.celebrate(soundEnabled);
+          fireCelebrationConfetti();
+          onCorrect(stageXp(level));
+        }
       } else {
         setCurrentBlankIdx(nextBlankIdx);
       }
@@ -121,11 +173,29 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
     }
   };
 
-  const handleReset = () => {
+  const clearBlanks = () => {
     setCurrentBlankIdx(0);
     setFilledWords({});
     setIsCompleted(false);
     setWrongWord(null);
+  };
+
+  // Restart and Practice again go back to the passage's first verse.
+  const handleReset = () => {
+    setStep({ run, idx: 0 });
+    clearBlanks();
+  };
+
+  // Cleared here as well as in the effect, so the finished verse's panel
+  // never shows for a frame over the next verse.
+  const goToVerse = (idx: number) => {
+    setStep({ run, idx });
+    clearBlanks();
+  };
+
+  const changeLevel = (next: DifficultyLevel) => {
+    setLevel(next);
+    clearBlanks();
   };
 
   const filledCount = Object.keys(filledWords).length;
@@ -141,7 +211,7 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
               key={st.lvl}
               type="button"
               aria-pressed={level === st.lvl}
-              onClick={() => setLevel(st.lvl)}
+              onClick={() => changeLevel(st.lvl)}
               className="flex items-center justify-center gap-1"
             >
               {level > st.lvl && <Check className="h-3.5 w-3.5 text-brand-ink" strokeWidth={3} aria-hidden="true" />}
@@ -155,7 +225,8 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
       </section>
 
       {/* The verse */}
-      <article className="card p-5 sm:p-7" aria-label={t('fill.verseLabel', { reference: verse.reference })}>
+      <article className="card p-5 sm:p-7" aria-label={t('fill.verseLabel', { reference: current.reference })}>
+        {isPassage && <PassageSteps index={verseIdx} total={verses.length} reference={current.reference} lang={lang} />}
         <div className="mb-4 flex items-center justify-between gap-3">
           <ProgressBar
             value={blankIndices.length ? (filledCount / blankIndices.length) * 100 : 0}
@@ -169,7 +240,7 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
             {speech.supported && (
               <button
                 type="button"
-                onClick={() => speech.toggle(verse.text, lang)}
+                onClick={() => speech.toggle(text, lang)}
                 className="icon-btn"
                 aria-pressed={speech.isSpeaking}
                 aria-label={speech.isSpeaking ? t('speech.stop') : t('speech.readAloud')}
@@ -234,7 +305,9 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
       )}
 
       {/* Answer area */}
-      {isCompleted ? (
+      {isCompleted && !isLastVerse ? (
+        <VerseDone key={verseIdx} index={verseIdx} total={verses.length} onNext={() => goToVerse(verseIdx + 1)} />
+      ) : isCompleted ? (
         <section
           ref={completeRef}
           className="card animate-rise flex scroll-mb-[calc(var(--tabbar-h)+var(--safe-bottom)+1rem)] flex-col items-center gap-4 border-gold bg-gold-soft p-6 text-center"
@@ -255,7 +328,7 @@ export const FillBlankMode: React.FC<FillBlankModeProps> = ({ verse, soundEnable
           <div className="flex w-full flex-col gap-3 sm:flex-row">
             <button
               type="button"
-              onClick={() => (level < 4 ? setLevel((level + 1) as DifficultyLevel) : handleReset())}
+              onClick={() => (level < 4 ? changeLevel((level + 1) as DifficultyLevel) : handleReset())}
               className="btn btn-primary flex-1"
             >
               {level < 4 ? t('fill.nextStage') : t('fill.practiceAgain')}
