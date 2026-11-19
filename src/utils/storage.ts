@@ -9,7 +9,14 @@ const STORAGE_KEYS = {
   PROGRESS: 'biblica_progress_v1',
   STATS: 'biblica_stats_v1',
   PROFILE: 'biblica_profile_v1',
+  TRIVIA: 'biblica_trivia_settings_v1',
 };
+
+/** The reader's last trivia round setup. Device-local, like the other prefs here. */
+export interface TriviaSettings {
+  questionCount: number;
+  secondsPerQuestion: number;
+}
 
 const STAND_IN_IDS = new Set(CURATED_VERSES.filter((v) => v.language).map((v) => v.id));
 
@@ -238,6 +245,27 @@ export const StorageService = {
       localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
     } catch (e) {
       console.error('Failed to save profile', e);
+    }
+  },
+
+  /** Last trivia choice, or null when none was saved or it is unreadable. Callers snap it to their presets. */
+  getTriviaSettings: (): TriviaSettings | null => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(STORAGE_KEYS.TRIVIA) || 'null');
+      if (Number.isInteger(parsed?.questionCount) && Number.isInteger(parsed?.secondsPerQuestion)) {
+        return { questionCount: parsed.questionCount, secondsPerQuestion: parsed.secondsPerQuestion };
+      }
+    } catch (e) {
+      console.error('Failed to read trivia settings', e);
+    }
+    return null;
+  },
+
+  saveTriviaSettings: (settings: TriviaSettings): void => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.TRIVIA, JSON.stringify(settings));
+    } catch (e) {
+      console.error('Failed to save trivia settings', e);
     }
   },
 
