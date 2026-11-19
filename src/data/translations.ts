@@ -11,6 +11,10 @@ const AMHARIC_COPYRIGHT =
   'Every non-commercial work using this data in any form must fully include this copyright statement! ' +
   'Every commercial use of parts or the complete data in any form needs written permission of the Bible Society of Ethiopia!';
 
+// The Old Testament comes from another source of the same 1962 Bible.
+const AMHARIC_OLD_TESTAMENT_CREDIT =
+  'The Old Testament is the 1962 Amharic Bible (the Haile Selassie Bible), text from WordProject.org (www.wordproject.org/bibles/am).';
+
 export const TRANSLATIONS = [
   {
     id: 'KJV',
@@ -46,13 +50,13 @@ export const TRANSLATIONS = [
     id: 'AMH',
     label: 'አማርኛ',
     name: 'Amharic Bible (1962)',
-    blurb: 'New Testament only',
+    blurb: 'Old and New Testaments',
     language: 'am',
-    newTestamentOnly: true,
+    newTestamentOnly: false,
     // Free and non-commercial only: commercial use needs the Bible Society of
     // Ethiopia's written permission. The statement must appear in full.
-    credit: AMHARIC_COPYRIGHT,
-    source: 'amh',
+    credit: `${AMHARIC_COPYRIGHT} ${AMHARIC_OLD_TESTAMENT_CREDIT}`,
+    source: 'amh', // New Testament; the Old Testament is built from WordProject (scripts/build-bible.ts)
   },
 ] as const;
 

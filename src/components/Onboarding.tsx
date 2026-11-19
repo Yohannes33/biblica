@@ -39,7 +39,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialTranslation, appL
   const lang = appLanguageOf(appLanguage, languageOf(translation));
   const t = (key: StringKey, vars?: Vars) => translate(lang, key, vars);
 
-  // Popular verses this Bible actually has (the Amharic one lacks the Old Testament).
+  // Popular verses this Bible actually has (the Amharic copy lost some verses).
   const popular = useMemo(() => curatedVerses(translation).filter((v) => v.translation === translation), [translation]);
 
   return (

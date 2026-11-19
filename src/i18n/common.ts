@@ -37,7 +37,7 @@ export const common = defineStrings(
     'translation.KJV.blurb': 'The classic 1611 wording',
     'translation.BSB.blurb': 'Modern and close to the original',
     'translation.WEB.blurb': 'Modern and easy to read',
-    'translation.AMH.blurb': 'New Testament only',
+    'translation.AMH.blurb': 'Old and New Testaments',
     'translation.AMH.name': 'Amharic Bible (1962)',
 
     'verses_one': '{n} verse',
@@ -73,7 +73,7 @@ export const common = defineStrings(
     'translation.KJV.blurb': 'የ1611 ጥንታዊው የእንግሊዝኛ ትርጉም',
     'translation.BSB.blurb': 'ዘመናዊና ለመጀመሪያው ጽሑፍ ቅርብ የሆነ የእንግሊዝኛ ትርጉም',
     'translation.WEB.blurb': 'ዘመናዊና ለማንበብ ቀላል የእንግሊዝኛ ትርጉም',
-    'translation.AMH.blurb': 'አዲስ ኪዳን ብቻ',
+    'translation.AMH.blurb': 'ብሉይና አዲስ ኪዳን',
     'translation.AMH.name': 'አማርኛ መጽሐፍ ቅዱስ (1962)',
 
     'verses_one': '{n} ጥቅስ',

@@ -17,7 +17,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png'],
       workbox: {
-        // Bible text is not precached (13 MB). Each book is cached the first
+        // Bible text is not precached (17 MB). Each book is cached the first
         // time it's opened and then works offline; the files are versioned
         // (/bible/v1/…), so a cached copy never goes stale.
         runtimeCaching: [

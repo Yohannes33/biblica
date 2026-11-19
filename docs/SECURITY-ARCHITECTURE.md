@@ -8,7 +8,7 @@ Biblica is a static, offline-first PWA (Vite + React, deployed on Vercel). It ha
 
 | Data | Where it lives | Who may read it |
 | --- | --- | --- |
-| Bible text: KJV, BSB, WEB (66 books each), Amharic New Testament 1962 (27 books) | `public/bible/v1/<TR>/<BOOK>.json`, served by Vercel's CDN, cached by the service worker | Anyone. KJV, BSB and WEB are public domain; the Amharic text is published openly on eBible.org |
+| Bible text: KJV, BSB, WEB and the Amharic Bible of 1962 (66 books each) | `public/bible/v1/<TR>/<BOOK>.json`, served by Vercel's CDN, cached by the service worker | Anyone. KJV, BSB and WEB are public domain; the Amharic New Testament is published openly on eBible.org and the Old Testament on WordProject.org |
 | Each user's profile, stats, verse progress and custom verses | The browser's `localStorage`; Supabase (`profiles`, `user_stats`, `verse_progress`, `custom_verses`) once signed in | Only that user |
 
 A brief proposed for a sibling Next.js project asked for the Bible dataset to be encrypted (AES-256-GCM or XChaCha20-Poly1305, Argon2id/scrypt/HKDF keys), decrypted only on a server, served one chapter at a time with bot blocking, rate limits and `no-store`. This record explains which of that applies here.

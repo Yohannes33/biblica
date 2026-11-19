@@ -53,7 +53,7 @@ export const StorageService = {
    * first, as saved), then the built-in verses this translation has, rebuilt
    * from the bundled text so they follow the translation and pick up text
    * corrections. Nothing reorders verses, so built-ins need no saved order,
-   * and ones a translation lacks (Old Testament in Amharic) simply return
+   * and ones a translation lacks (text lost in the Amharic copy) simply return
    * when the reader switches back.
    */
   getVerses: (translation: Translation): Verse[] => {
