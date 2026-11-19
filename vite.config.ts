@@ -19,7 +19,7 @@ export default defineConfig({
       workbox: {
         // Bible text is not precached (17 MB). Each book is cached the first
         // time it's opened and then works offline; the files are versioned
-        // (/bible/v1/…), so a cached copy never goes stale.
+        // (/bible/v2/…), so a cached copy never goes stale.
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/bible/'),

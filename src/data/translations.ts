@@ -66,7 +66,7 @@ export type TranslationInfo = (typeof TRANSLATIONS)[number];
 export const DEFAULT_TRANSLATION: Translation = 'KJV';
 
 /** Bump when the generated text changes, so cached copies are replaced. */
-export const BIBLE_DATA_VERSION = 'v1';
+export const BIBLE_DATA_VERSION = 'v2';
 
 export function isTranslation(value: unknown): value is Translation {
   return TRANSLATIONS.some((t) => t.id === value);
