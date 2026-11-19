@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useId } from 'react';
 import { Zap, Trophy, RotateCcw, Check, X, Play } from 'lucide-react';
 import type { Verse } from '../../types/verse';
 import { playSound } from '../../utils/audio';
@@ -6,6 +6,7 @@ import { fireCelebrationConfetti } from '../../utils/confetti';
 import { Ring } from '../ui/Progress';
 import { languageOf } from '../../data/translations';
 import { useT } from '../../i18n';
+import { StorageService } from '../../utils/storage';
 
 interface TriviaQuizModeProps {
   verses: Verse[];
@@ -24,8 +25,23 @@ interface Question {
 
 type QuizPhase = 'ready' | 'playing' | 'finished';
 
-const QUESTION_COUNT = 5;
-const TIME_LIMIT = 15;
+// Each question is built from a different verse, so a round can never be
+// longer than the library; longer presets are disabled when it is too small.
+const QUESTION_PRESETS = [5, 10, 15, 20] as const;
+const SECONDS_PRESETS = [10, 15, 20, 30] as const;
+const DEFAULT_QUESTIONS = 5;
+const DEFAULT_SECONDS = 15;
+
+const pick = (presets: readonly number[], value: number | undefined, fallback: number) =>
+  value !== undefined && presets.includes(value) ? value : fallback;
+
+/** A preset is playable if the library covers it; the shortest one always is (it plays every verse there is). */
+const questionPresetEnabled = (preset: number, available: number) =>
+  preset <= available || preset === QUESTION_PRESETS[0];
+
+/** The longest playable preset not above the reader's choice, so a smaller library caps it without losing it. */
+const effectiveQuestionPreset = (chosen: number, available: number) =>
+  [...QUESTION_PRESETS].reverse().find((p) => p <= chosen && questionPresetEnabled(p, available)) ?? QUESTION_PRESETS[0];
 
 export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEnabled, onFinishQuiz }) => {
   const [phase, setPhase] = useState<QuizPhase>('ready');
@@ -34,18 +50,28 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(1);
-  const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
+  const [chosenQuestions, setChosenQuestions] = useState(() =>
+    pick(QUESTION_PRESETS, StorageService.getTriviaSettings()?.questionCount, DEFAULT_QUESTIONS)
+  );
+  const [secondsPerQuestion, setSecondsPerQuestion] = useState(() =>
+    pick(SECONDS_PRESETS, StorageService.getTriviaSettings()?.secondsPerQuestion, DEFAULT_SECONDS)
+  );
+  const [timeLeft, setTimeLeft] = useState(secondsPerQuestion);
   const [totalXpEarned, setTotalXpEarned] = useState(0);
   const [results, setResults] = useState<boolean[]>([]);
   const advanceTimerRef = useRef<number | null>(null);
   const t = useT();
+  const questionsLabelId = useId();
+  const secondsLabelId = useId();
+  const cappedNoteId = useId();
+  const roundSize = Math.min(effectiveQuestionPreset(chosenQuestions, verses.length), verses.length);
   // Answer markers: A–D in English, ሀ ለ ሐ መ in Amharic.
   const letters = Array.from(t('trivia.letters'));
 
-  const generateQuestions = useCallback(() => {
+  const generateQuestions = useCallback((count: number) => {
     if (verses.length < 4) return [];
     const pool = [...verses].sort(() => Math.random() - 0.5);
-    const selectedVerses = pool.slice(0, QUESTION_COUNT);
+    const selectedVerses = pool.slice(0, count);
 
     return selectedVerses.map((target, idx): Question => {
       // Wrong answers come from verses in the target's language, so an Amharic
@@ -110,13 +136,12 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
     setSelectedAnswer(null);
     setScore(0);
     setCombo(1);
-    setTimeLeft(TIME_LIMIT);
     setTotalXpEarned(0);
     setResults([]);
   }, [verses, clearAdvanceTimer]);
 
   const startQuiz = useCallback(() => {
-    const nextQuestions = generateQuestions();
+    const nextQuestions = generateQuestions(roundSize);
     if (nextQuestions.length === 0) return;
     clearAdvanceTimer();
     setQuestions(nextQuestions);
@@ -124,11 +149,21 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
     setSelectedAnswer(null);
     setScore(0);
     setCombo(1);
-    setTimeLeft(TIME_LIMIT);
+    setTimeLeft(secondsPerQuestion);
     setTotalXpEarned(0);
     setResults([]);
     setPhase('playing');
-  }, [generateQuestions, clearAdvanceTimer]);
+  }, [generateQuestions, clearAdvanceTimer, roundSize, secondsPerQuestion]);
+
+  const chooseQuestions = (count: number) => {
+    setChosenQuestions(count);
+    StorageService.saveTriviaSettings({ questionCount: count, secondsPerQuestion });
+  };
+
+  const chooseSeconds = (seconds: number) => {
+    setSecondsPerQuestion(seconds);
+    StorageService.saveTriviaSettings({ questionCount: chosenQuestions, secondsPerQuestion: seconds });
+  };
 
   const currentQ = questions[currentIdx];
 
@@ -141,7 +176,8 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
         advanceTimerRef.current = null;
         if (currentIdx + 1 >= questions.length) {
           setPhase('finished');
-          if (finalScore > 200) {
+          // 200 points per 5 questions: the original bar, scaled so longer rounds don't celebrate trivially.
+          if (finalScore > 40 * questions.length) {
             playSound.celebrate(soundEnabled);
             fireCelebrationConfetti();
           }
@@ -149,11 +185,11 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
         } else {
           setCurrentIdx((prev) => prev + 1);
           setSelectedAnswer(null);
-          setTimeLeft(TIME_LIMIT);
+          setTimeLeft(secondsPerQuestion);
         }
       }, 1300);
     },
-    [clearAdvanceTimer, currentIdx, onFinishQuiz, questions.length, soundEnabled]
+    [clearAdvanceTimer, currentIdx, onFinishQuiz, questions.length, secondsPerQuestion, soundEnabled]
   );
 
   const handleTimeOut = useCallback(() => {
@@ -205,7 +241,8 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
   }
 
   if (phase === 'ready') {
-    const roundSize = Math.min(QUESTION_COUNT, verses.length);
+    const capped = verses.length < QUESTION_PRESETS[QUESTION_PRESETS.length - 1];
+    const selectedPreset = effectiveQuestionPreset(chosenQuestions, verses.length);
     return (
       <div className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-4">
         <section className="card animate-rise flex flex-col items-center gap-5 p-6 text-center sm:p-8">
@@ -216,18 +253,57 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
             <h2 className="font-display text-3xl font-extrabold tracking-tight">{t('trivia.readyTitle')}</h2>
             <p className="mt-1.5 max-w-sm text-ink-2">{t('trivia.readyBody')}</p>
           </div>
-          <dl className="grid w-full grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-surface-2 p-4">
-              <dt className="text-sm text-ink-3">{t('trivia.questionsLabel')}</dt>
-              <dd className="font-display text-2xl font-extrabold tabular-nums">{roundSize}</dd>
+          <div className="flex w-full flex-col gap-4 text-left">
+            <div>
+              <p id={questionsLabelId} className="mb-1.5 px-1 font-display text-sm font-extrabold text-ink-2">
+                {t('trivia.questionsLabel')}
+              </p>
+              <div
+                className="segmented"
+                role="group"
+                aria-labelledby={questionsLabelId}
+                aria-describedby={capped ? cappedNoteId : undefined}
+              >
+                {QUESTION_PRESETS.map((count) => {
+                  const enabled = questionPresetEnabled(count, verses.length);
+                  return (
+                    <button
+                      key={count}
+                      type="button"
+                      aria-pressed={selectedPreset === count}
+                      disabled={!enabled}
+                      onClick={() => chooseQuestions(count)}
+                      className="tabular-nums disabled:cursor-not-allowed disabled:line-through disabled:opacity-40"
+                    >
+                      {/* The shortest preset plays the whole library when it is smaller, so show that count. */}
+                      {count === QUESTION_PRESETS[0] ? Math.min(count, verses.length) : count}
+                    </button>
+                  );
+                })}
+              </div>
+              {capped && (
+                <p id={cappedNoteId} className="mt-1.5 px-1 text-sm text-ink-2">{t('trivia.capped', { n: verses.length })}</p>
+              )}
             </div>
-            <div className="rounded-2xl bg-surface-2 p-4">
-              <dt className="text-sm text-ink-3">{t('trivia.perQuestionLabel')}</dt>
-              <dd className="font-display text-2xl font-extrabold tabular-nums">
-                {t('trivia.secondsShort', { n: TIME_LIMIT })}
-              </dd>
+            <div>
+              <p id={secondsLabelId} className="mb-1.5 px-1 font-display text-sm font-extrabold text-ink-2">
+                {t('trivia.perQuestionLabel')}
+              </p>
+              <div className="segmented" role="group" aria-labelledby={secondsLabelId}>
+                {SECONDS_PRESETS.map((seconds) => (
+                  <button
+                    key={seconds}
+                    type="button"
+                    aria-pressed={secondsPerQuestion === seconds}
+                    onClick={() => chooseSeconds(seconds)}
+                    className="tabular-nums"
+                  >
+                    {t('trivia.secondsShort', { n: seconds })}
+                  </button>
+                ))}
+              </div>
             </div>
-          </dl>
+          </div>
           <button type="button" onClick={startQuiz} className="btn btn-primary w-full">
             <Play className="h-5 w-5 fill-current" aria-hidden="true" />
             {t('trivia.start')}
@@ -273,7 +349,7 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
           </span>
           <div>
             <h2 className="font-display text-3xl font-extrabold tracking-tight">
-              {correctCount === questions.length ? t('trivia.perfect') : correctCount >= 3 ? t('trivia.great') : t('trivia.complete')}
+              {correctCount === questions.length ? t('trivia.perfect') : correctCount >= Math.ceil(questions.length * 0.6) ? t('trivia.great') : t('trivia.complete')}
             </h2>
             <p className="mt-1 text-ink-2">
               {t('trivia.correctOf', { correct: correctCount, total: questions.length })}
@@ -308,7 +384,7 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
               </h2>
               <div className="flex items-center gap-3">
                 <span className="font-display text-sm font-extrabold text-ink-3 tabular-nums">{t('trivia.points', { n: score })}</span>
-                <Ring value={(timeLeft / TIME_LIMIT) * 100} size={44} stroke={4} tone={timeLow ? 'danger' : 'brand'}>
+                <Ring value={(timeLeft / secondsPerQuestion) * 100} size={44} stroke={4} tone={timeLow ? 'danger' : 'brand'}>
                   <span
                     className={`font-display text-sm font-extrabold tabular-nums ${timeLow ? 'text-danger-ink' : ''}`}
                     role="timer"
