@@ -15,7 +15,7 @@ import { StorageService } from './utils/storage';
 import { SupabaseService } from './lib/supabase';
 import { newAvatarSeed } from './utils/avatar';
 import { buildReviewQueue, mergeProgress, startOfDay } from './utils/srs';
-import { LanguageProvider, translate } from './i18n';
+import { LanguageProvider, appLanguageOf, translate } from './i18n';
 import { languageOf } from './data/translations';
 
 const LAST_USER_KEY = 'biblica_last_user';
@@ -37,8 +37,9 @@ export function App() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [needsOnboarding, setNeedsOnboarding] = useState(() => StorageService.needsOnboarding(StorageService.getProfile()));
 
-  // The interface speaks the language of the reader's Bible.
-  const uiLang = languageOf(profile.preferredTranslation);
+  // The interface speaks the reader's App language setting, which by default
+  // ("match") is the language of their Bible.
+  const uiLang = appLanguageOf(profile.appLanguage, languageOf(profile.preferredTranslation));
   useEffect(() => {
     document.documentElement.lang = uiLang;
   }, [uiLang]);
@@ -322,6 +323,7 @@ export function App() {
     return (
       <Onboarding
         initialTranslation={profile.preferredTranslation}
+        appLanguage={profile.appLanguage}
         onFinish={finishOnboarding}
         onSignIn={
           SupabaseService.isConfigured()

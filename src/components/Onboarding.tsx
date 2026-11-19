@@ -3,19 +3,21 @@ import { BookOpen, Check, ChevronLeft } from 'lucide-react';
 import { TRANSLATIONS, languageOf, translationInfo, type Translation } from '../data/translations';
 import { curatedVerses } from '../data/initialVerses';
 import { BibleBrowser, type PickedPassage } from './BibleBrowser';
-import { LanguageProvider, translate, translateCategory, type StringKey, type Vars } from '../i18n';
+import { LanguageProvider, appLanguageOf, translate, translateCategory, type AppLanguage, type StringKey, type Vars } from '../i18n';
 
 export type FirstVerse = { kind: 'builtIn'; id: string } | { kind: 'passage'; passage: PickedPassage };
 
 interface OnboardingProps {
   initialTranslation: Translation;
+  /** The reader's App language setting; "match" (the default) follows the Bible picked here. */
+  appLanguage?: AppLanguage;
   onFinish: (translation: Translation, first: FirstVerse) => void;
   /** Offered when cloud sync is set up, for people who already use Biblica elsewhere. */
   onSignIn?: (translation: Translation) => void;
 }
 
 /** First run: choose a Bible, then the first verse to memorise. */
-export const Onboarding: React.FC<OnboardingProps> = ({ initialTranslation, onFinish, onSignIn }) => {
+export const Onboarding: React.FC<OnboardingProps> = ({ initialTranslation, appLanguage, onFinish, onSignIn }) => {
   const [step, setStep] = useState<'bible' | 'verse'>('bible');
   const [translation, setTranslation] = useState<Translation>(initialTranslation);
   const [source, setSource] = useState<'popular' | 'bible'>('popular');
@@ -32,8 +34,9 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialTranslation, onFi
   }, [step]);
   const info = translationInfo(translation);
   // This renders before the app's LanguageProvider, and should switch language
-  // the moment a Bible is picked, so it provides its own.
-  const lang = languageOf(translation);
+  // the moment a Bible is picked (unless the App language is set), so it
+  // provides its own.
+  const lang = appLanguageOf(appLanguage, languageOf(translation));
   const t = (key: StringKey, vars?: Vars) => translate(lang, key, vars);
 
   // Popular verses this Bible actually has (the Amharic one lacks the Old Testament).

@@ -1,4 +1,5 @@
 import type { Translation } from '../data/translations';
+import type { AppLanguage } from '../i18n';
 
 export type { Translation };
 
@@ -50,6 +51,8 @@ export interface UserProfile {
   avatarUrl?: string;
   avatarSeed?: string; // seeds the generated DiceBear avatar
   preferredTranslation: Translation;
+  // Interface language. Absent on profiles saved before it existed: those match the Bible.
+  appLanguage?: AppLanguage;
   dailyGoalVerses: number;
   theme: 'light' | 'dark';
   joinedDate: string;

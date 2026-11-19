@@ -4,12 +4,28 @@ import { app } from './app';
 import { library } from './library';
 import { practice } from './practice';
 
-// The interface speaks the language of the reader's Bible: Amharic when they
-// pick አማርኛ, English otherwise. Strings live in ./common, ./app, ./library and
+// By default the interface speaks the language of the reader's Bible: Amharic
+// when they pick አማርኛ, English otherwise. The App language setting can pin it
+// to English or Amharic instead (appLanguageOf). Verse text always stays in its
+// Bible's language and carries its own lang attribute. Strings live in ./common, ./app, ./library and
 // ./practice, English and Amharic side by side, so a native reader can check
 // the Amharic in one place. The Amharic is a draft until one has.
 
 export type Lang = 'en' | 'am';
+
+/** The App language setting: follow the Bible's language, or a fixed one. */
+export type AppLanguage = 'match' | Lang;
+export const APP_LANGUAGES: readonly AppLanguage[] = ['match', 'en', 'am'];
+
+/** Profiles saved before the setting existed (or with a value we don't know) match the Bible. */
+export function toAppLanguage(value: unknown): AppLanguage {
+  return APP_LANGUAGES.includes(value as AppLanguage) ? (value as AppLanguage) : 'match';
+}
+
+/** The interface language for a setting, given the language of the reader's Bible. */
+export function appLanguageOf(setting: AppLanguage | undefined, bibleLang: Lang): Lang {
+  return setting === 'en' || setting === 'am' ? setting : bibleLang;
+}
 
 const DICTIONARIES = {
   en: { ...common.en, ...app.en, ...library.en, ...practice.en },

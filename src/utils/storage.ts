@@ -1,6 +1,7 @@
 import { curatedVerses, FIRST_VERSE_ID } from '../data/initialVerses';
 import { CURATED_VERSES } from '../data/curatedVerses';
 import { DEFAULT_TRANSLATION, toTranslation, type Translation } from '../data/translations';
+import { toAppLanguage } from '../i18n';
 import type { UserProfile, UserStats, Verse, VerseProgress } from '../types/verse';
 import { MASTERY_DELTA, schedule, type Rating } from './srs';
 
@@ -32,6 +33,7 @@ const DEFAULT_PROFILE: UserProfile = {
   name: 'Pilgrim',
   email: 'pilgrim@biblica.app',
   preferredTranslation: DEFAULT_TRANSLATION,
+  appLanguage: 'match',
   dailyGoalVerses: 3,
   theme: 'light',
   joinedDate: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
@@ -211,7 +213,11 @@ export const StorageService = {
       const stored = localStorage.getItem(STORAGE_KEYS.PROFILE);
       if (stored) {
         const profile: UserProfile = JSON.parse(stored);
-        return { ...profile, preferredTranslation: toTranslation(profile.preferredTranslation) };
+        return {
+          ...profile,
+          preferredTranslation: toTranslation(profile.preferredTranslation),
+          appLanguage: toAppLanguage(profile.appLanguage),
+        };
       }
     } catch (e) {
       console.error('Failed to read profile', e);
