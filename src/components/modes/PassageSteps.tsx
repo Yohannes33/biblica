@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Check } from 'lucide-react';
 import { useT } from '../../i18n';
 import { useRevealOnShow } from '../../utils/useRevealOnShow';
@@ -85,13 +85,22 @@ export const VerseDone: React.FC<VerseDoneProps> = ({ index, total, onNext }) =>
   );
 };
 
-/** Waiting for a passage's book to know where its verses begin and end. */
+/**
+ * Waiting for a passage's book to know where its verses begin and end. Says
+ * nothing for the first moment, so a book that arrives quickly (from the
+ * service worker's cache) shows no flash and announces nothing.
+ */
 export const PassageLoading: React.FC = () => {
   const t = useT();
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShown(true), 400);
+    return () => window.clearTimeout(timer);
+  }, []);
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-4">
-      <p role="status" className="card p-5 text-center text-ink-2">
-        {t('passage.loading')}
+      <p role="status" className={`card p-5 text-center text-ink-2 ${shown ? '' : 'invisible'}`}>
+        {shown ? t('passage.loading') : ''}
       </p>
     </div>
   );

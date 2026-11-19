@@ -32,24 +32,40 @@ const STAGES: { lvl: DifficultyLevel; label: StringKey; hint: StringKey }[] = [
 const stageXp = (level: DifficultyLevel) => (level === 4 ? 60 : level * 15);
 
 export const FillBlankMode: React.FC<FillBlankModeProps> = (props) => {
+  // The stage lives out here, above the loading state: a new translation
+  // can send a passage back to loading, and must not lose the stage with it.
+  const [level, setLevel] = useState<DifficultyLevel>(1);
+  // Start every new verse back at Stage 1 (Key words), while preserving the
+  // current stage if only the translation wording (`verse.text`) changes.
+  useEffect(() => {
+    setLevel(1);
+  }, [props.verse.id]);
+
   const passage = usePassageVerses(props.verse);
   if (passage.loading) return <PassageLoading />;
-  return <FillBlankPassage {...props} verses={passage.verses} />;
+  return <FillBlankPassage {...props} verses={passage.verses} level={level} setLevel={setLevel} />;
 };
+
+interface FillBlankPassageProps extends FillBlankModeProps {
+  verses: PassageVerse[];
+  level: DifficultyLevel;
+  setLevel: (level: DifficultyLevel) => void;
+}
 
 /**
  * A passage of several verses is filled in one verse at a time: blanks and
  * word choices come from the current verse only. The stage holds for the
  * whole passage, and XP comes once, after its last verse.
  */
-const FillBlankPassage: React.FC<FillBlankModeProps & { verses: PassageVerse[] }> = ({
+const FillBlankPassage: React.FC<FillBlankPassageProps> = ({
   verse,
   verses,
+  level,
+  setLevel,
   soundEnabled,
   onCorrect,
   onNextVerse,
 }) => {
-  const [level, setLevel] = useState<DifficultyLevel>(1);
   // Which verse of the passage, tagged with the run it belongs to, so a new
   // stage or wording starts from the first verse in the same render.
   const [step, setStep] = useState({ run: '', idx: 0 });
@@ -76,12 +92,6 @@ const FillBlankPassage: React.FC<FillBlankModeProps & { verses: PassageVerse[] }
   const otherVerseTokens = useMemo(() => analyzeVerseTokens(otherVersesText), [otherVersesText]);
   const lang = languageOf(verse.translation);
   const blankIndices = useMemo(() => getBlankIndicesForLevel(analyzedTokens, level), [analyzedTokens, level]);
-
-  // Start every new verse back at Stage 1 (Key words), while preserving the
-  // current stage if only the translation wording (`verse.text`) changes.
-  useEffect(() => {
-    setLevel(1);
-  }, [verse.id]);
 
   useEffect(() => {
     setCurrentBlankIdx(0);

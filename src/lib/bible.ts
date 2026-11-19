@@ -123,6 +123,13 @@ export class BibleLoadError extends Error {}
 // handful in memory is plenty; the service worker keeps the rest on disk.
 const MAX_CACHED_BOOKS = 8;
 const books = new Map<string, Promise<BookText>>();
+// The same books once downloaded, for callers that can't wait a render.
+const loaded = new Map<string, BookText>();
+
+/** A book already in memory, or undefined. Never fetches. */
+export function peekBook(translation: Translation, code: string): BookText | undefined {
+  return loaded.get(`${translation}/${code}`);
+}
 
 export function loadBook(translation: Translation, code: string): Promise<BookText> {
   const key = `${translation}/${code}`;
@@ -138,13 +145,21 @@ export function loadBook(translation: Translation, code: string): Promise<BookTe
       if (!res.ok) throw new BibleLoadError(`HTTP ${res.status}`);
       return res.json() as Promise<BookText>;
     })
+    .then((text) => {
+      if (books.get(key) === request) loaded.set(key, text);
+      return text;
+    })
     .catch((err) => {
       // Don't keep a failure: the next attempt (back online) should refetch.
       books.delete(key);
       throw err instanceof BibleLoadError ? err : new BibleLoadError(String(err));
     });
   books.set(key, request);
-  while (books.size > MAX_CACHED_BOOKS) books.delete(books.keys().next().value!);
+  while (books.size > MAX_CACHED_BOOKS) {
+    const oldest = books.keys().next().value!;
+    books.delete(oldest);
+    loaded.delete(oldest);
+  }
   return request;
 }
 
