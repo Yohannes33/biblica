@@ -301,7 +301,10 @@ export const TriviaQuizMode: React.FC<TriviaQuizModeProps> = ({ verses, soundEna
               <h2 className="font-display text-lg font-extrabold">
                 {currentQ.type === 'match-ref'
                   ? t('trivia.whichVerse')
-                  : t('trivia.finish', { reference: currentQ.verseReference })}
+                  : // The reference is in the verse's language, which can differ from the interface's.
+                    t('trivia.finish')
+                      .split(/(\{reference\})/)
+                      .map((piece, i) => (i % 2 ? <span key={i} lang={currentQ.lang}>{currentQ.verseReference}</span> : piece))}
               </h2>
               <div className="flex items-center gap-3">
                 <span className="font-display text-sm font-extrabold text-ink-3 tabular-nums">{t('trivia.points', { n: score })}</span>

@@ -7,7 +7,7 @@ import { Avatar } from './ui/Avatar';
 import { newAvatarSeed } from '../utils/avatar';
 import { getLevelTitle } from '../utils/level';
 import { TRANSLATIONS } from '../data/translations';
-import { displayName, useT } from '../i18n';
+import { APP_LANGUAGES, displayName, toAppLanguage, useT, type AppLanguage } from '../i18n';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -21,6 +21,10 @@ interface AccountModalProps {
   onToggleSound: () => void;
   onDataSynced: (newStats: UserStats, newProgress: Record<string, VerseProgress>, newVerses: Verse[]) => void;
 }
+
+// Each fixed language is named in itself, so a reader who can't read the
+// current interface can still find their own.
+const APP_LANGUAGE_NAMES: Record<Exclude<AppLanguage, 'match'>, string> = { en: 'English', am: 'አማርኛ' };
 
 const Section: React.FC<{ title: string; children: React.ReactNode; footer?: React.ReactNode }> = ({ title, children, footer }) => (
   <section className="mb-6">
@@ -291,6 +295,22 @@ export const AccountModal: React.FC<AccountModalProps> = ({
               {/* Visible label in its own language; the English name follows for screen readers. */}
               <span lang={language}>{label}</span>
               <span lang={id === 'AMH' ? t.lang : 'en'} className="sr-only">, {nameOf(id, name)}</span>
+            </button>
+          ))}
+        </div>
+      </Section>
+
+      <Section title={t('settings.appLanguage')} footer={t('settings.appLanguageFooter')}>
+        <div className="segmented" role="group" aria-label={t('settings.appLanguage')}>
+          {APP_LANGUAGES.map((option) => (
+            <button
+              key={option}
+              type="button"
+              lang={option === 'match' ? t.lang : option}
+              aria-pressed={toAppLanguage(profile.appLanguage) === option}
+              onClick={() => onUpdateProfile({ ...profile, appLanguage: option })}
+            >
+              {option === 'match' ? t('settings.appLanguageMatch') : APP_LANGUAGE_NAMES[option]}
             </button>
           ))}
         </div>
